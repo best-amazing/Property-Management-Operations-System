@@ -1,14 +1,8 @@
 node_modules/
-.env
 dist/
 build/
-.DS_Store
+.env
 *.log
 coverage/
 .tsbuildinfo
 *.tsbuildinfo
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store?
