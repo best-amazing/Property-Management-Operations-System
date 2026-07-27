@@ -72,4 +72,5 @@ export const pmosApi = {
 
   getActivity: () => pmosApi.request<ActivityItem[]>("/client/activity"),
   getUsers: () => pmosApi.request<User[]>("/client/users"),
+  resetTickets: () => pmosApi.request<{ message: string }>("/admin/seed/tickets", { method: "POST" }),
 };

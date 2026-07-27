@@ -221,6 +221,19 @@ export const AdminSettings: React.FC = () => {
           </div>
         )}
 
+        <hr className="pmos-divider" />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 13 }}>Danger zone</div>
+            <div style={{ fontSize: 12, color: "#888" }}>This only affects tickets — your team and services stay as configured.</div>
+          </div>
+          <button className="pmos-btn sm ghost-danger" onClick={async () => {
+            if (!confirm("Reset all tickets back to the demo set? This only affects tickets — your team and services stay as configured.")) return;
+            await pmosApi.resetTickets();
+            toast.success("Tickets reset to demo set");
+          }}>Reset tickets</button>
+        </div>
+
         <div className="pmos-modal-actions">
           <button className="pmos-btn" onClick={() => navigate("/")}>Close</button>
         </div>

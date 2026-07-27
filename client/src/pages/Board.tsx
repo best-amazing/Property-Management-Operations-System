@@ -375,9 +375,17 @@ export const Board: React.FC = () => {
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [newTicketStage, setNewTicketStage] = useState(0);
   const [user, setUser] = useState<any>(null);
+  const [pipelineCounts, setPipelineCounts] = useState<Record<string, number>>({});
 
   const { data: pipelines = [] } = usePipelines();
   const { data: tickets = [], isLoading: ticketsLoading } = useTickets(activePipelineId, filterMine);
+
+  // Persist per-pipeline ticket counts across tab switches
+  useEffect(() => {
+    if (activePipelineId) {
+      setPipelineCounts(prev => ({ ...prev, [activePipelineId]: tickets.length }));
+    }
+  }, [activePipelineId, tickets.length]);
   const { data: users = [] } = useUsers();
 
   const activePipeline = pipelines.find(p => p.id === activePipelineId) ?? null;
@@ -493,7 +501,7 @@ export const Board: React.FC = () => {
         {/* Pipeline tabs */}
         <div className="pmos-tabs">
           {pipelines.map(p => {
-            const count = tickets.filter(t => t.pipeline_id === p.id).length;
+            const count = p.id === activePipelineId ? tickets.length : (pipelineCounts[p.id] ?? 0);
             return (
               <div
                 key={p.id}
