@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import { Login } from "./pages/login";
 import { Board } from "./pages/Board";
 import { History } from "./pages/History";
@@ -7,6 +8,7 @@ import { AdminSettings } from "./pages/AdminSettings";
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Board />} />

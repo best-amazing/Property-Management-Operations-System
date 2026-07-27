@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { pmosApi } from "../services/pmosApi";
 import { User, Pipeline } from "../types/pmos";
 import { avatarSwatch, initials } from "../utils/ui";
@@ -73,6 +74,7 @@ export const AdminSettings: React.FC = () => {
     e.preventDefault();
     await pmosApi.createUser({ username: newUsername, password: newPassword, display_name: newDisplayName, role: newRole });
     setNewUsername(""); setNewPassword(""); setNewDisplayName("");
+    toast.success(`${newDisplayName} created`);
     load();
   };
 
@@ -94,8 +96,8 @@ export const AdminSettings: React.FC = () => {
 
   const handleCreatePipeline = async () => {
     const stages = svcStages.map(s => s.trim()).filter(Boolean);
-    if (!svcName.trim()) { alert("Service name is required."); return; }
-    if (stages.length < 2) { alert("Add at least 2 stages."); return; }
+    if (!svcName.trim()) { toast.error("Service name is required."); return; }
+    if (stages.length < 2) { toast.error("Add at least 2 stages."); return; }
     const tagOptions = svcTags.filter(t => t.name.trim()).map(t => ({ name: t.name.trim(), swatch: t.swatch, slaDays: t.sla }));
     const finalTagOptions = tagOptions.length ? tagOptions : [{ name: "Standard", swatch: "Pine", slaDays: 5 }];
     const catOptions = svcCatOptions.split(",").map(s => s.trim()).filter(Boolean);
@@ -110,6 +112,7 @@ export const AdminSettings: React.FC = () => {
       category_field: { label: svcCatLabel.trim() || "Category", options: catOptions.length ? catOptions : ["General"] },
       default_checklist: defaultChecklist,
     });
+    toast.success(`Service "${svcName.trim()}" created`);
     setSvcName(""); setSvcCode(""); setSvcStages(["", "", ""]); setSvcTagLabel("Priority");
     setSvcTags([{ name: "Standard", swatch: "Pine", sla: 5 }, { name: "Rush", swatch: "Amber", sla: 2 }]);
     setSvcCatLabel("Category"); setSvcCatOptions(""); setSvcChecklist("");
