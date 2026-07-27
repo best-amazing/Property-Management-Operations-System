@@ -66,9 +66,6 @@ export const Login: React.FC = () => {
           </button>
         </form>
 
-        <div className="pmos-login-demo">
-          Demo logins — admin/admin123 &nbsp;·&nbsp; priya/priya123 &nbsp;·&nbsp; jordan/jordan123
-        </div>
       </div>
     </div>
   );
