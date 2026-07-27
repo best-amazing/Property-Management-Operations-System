@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  display_name  String
+  password_hash String
+  role          String   @default("staff") // "admin" | "staff"
+  created_at    DateTime @default(now())
+}
+
+model Pipeline {
+  id                String   @id @default(cuid())
+  label             String
+  code              String
+  stages            Json     // array of stage names
+  tag_field         Json     // options and SLA days
+  category_field    Json     // options
+  default_checklist Json     // array of checklist items
+  created_by        String
+  created_at        DateTime @default(now())
+
+  tickets           Ticket[]
+}
+
+model Ticket {
+  id               String   @id @default(cuid())
+  title            String
+  property         String?
+  unit             String?
+  tag              String?
+  category         String?
+  assigned_to      String?
+  stage_index      Int      @default(0)
+  checklist        Json     // current checklist state
+  history          Json     // stage transition history
+  created_at       DateTime @default(now())
+  stage_entered_at DateTime @default(now())
+  completed_at     DateTime?
+
+  pipeline_id      String
+  pipeline         Pipeline @relation(fields: [pipeline_id], references: [id])
+  
+  notes            Note[]
+}
+
+model Note {
+  id         String   @id @default(cuid())
+  text       String
+  author     String
+  created_at DateTime @default(now())
+
+  ticket_id  String
+  ticket     Ticket   @relation(fields: [ticket_id], references: [id])
+}

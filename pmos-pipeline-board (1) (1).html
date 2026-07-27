@@ -1,0 +1,1172 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --bg:#ECEEEA;
+  --surface:#FFFFFF;
+  --ink:#1B2421;
+  --ink-soft:#5B6660;
+  --primary:#1F4B43;
+  --primary-soft:#E4ECE9;
+  --accent:#D98E3B;
+  --accent-soft:#F8E9D3;
+  --danger:#B23A2E;
+  --danger-soft:#F6DEDA;
+  --line:#D3D6CD;
+  --shadow:0 2px 6px rgba(27,36,33,0.06);
+  --shadow-lg:0 10px 30px rgba(27,36,33,0.16);
+  --radius:9px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+#pmos-root{
+  font-family:'IBM Plex Sans',sans-serif;
+  color:var(--ink);
+  background:var(--bg);
+  min-height:640px;
+  display:flex;
+  flex-direction:column;
+  border-radius:12px;
+  overflow:hidden;
+  border:1px solid var(--line);
+  position:relative;
+}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.display{font-family:'Space Grotesk',sans-serif;}
+button,input,select,textarea{font:inherit;}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+
+/* ---------- Login ---------- */
+.pmos-login-wrap{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 30% 20%, rgba(31,75,67,0.10), transparent 55%),
+             radial-gradient(circle at 80% 80%, rgba(217,142,59,0.10), transparent 50%),
+             var(--bg);
+  padding:30px;
+}
+.pmos-login-card{
+  width:100%;max-width:360px;
+  background:var(--surface);
+  border-radius:14px;
+  box-shadow:var(--shadow-lg);
+  padding:30px 28px 26px;
+  border:1px solid var(--line);
+  text-align:center;
+}
+.pmos-login-stamp{
+  display:inline-block;
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:700;
+  font-size:13px;
+  letter-spacing:1.5px;
+  color:var(--primary);
+  border:2px dashed var(--primary);
+  padding:6px 14px;
+  border-radius:6px;
+  transform:rotate(-4deg);
+  margin-bottom:16px;
+}
+.pmos-login-card h2{font-family:'Space Grotesk',sans-serif;font-size:19px;margin:0 0 4px;}
+.pmos-login-card p{font-size:12.5px;color:var(--ink-soft);margin:0 0 20px;}
+.pmos-login-card .pmos-field{text-align:left;}
+.pmos-login-error{
+  color:var(--danger);font-size:12px;font-weight:600;
+  min-height:16px;margin:-4px 0 10px;text-align:left;
+}
+.pmos-login-demo{
+  margin-top:16px;font-size:11px;color:var(--ink-soft);
+  background:var(--bg);border-radius:7px;padding:8px 10px;
+  font-family:'IBM Plex Mono',monospace;letter-spacing:0.2px;
+}
+
+/* ---------- Top bar ---------- */
+.pmos-topbar{padding:16px 22px 0;background:var(--surface);border-bottom:1px solid var(--line);}
+.pmos-title-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:13px;}
+.pmos-title{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;letter-spacing:0.2px;}
+.pmos-right-cluster{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+.pmos-user-pill{display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;background:var(--bg);border-radius:30px;}
+.pmos-avatar{
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:10.5px;
+  color:#fff;flex:none;
+}
+.pmos-user-pill .name{font-size:12.5px;font-weight:600;}
+.pmos-role-badge{
+  font-size:9.5px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;
+  padding:2px 7px;border-radius:20px;background:var(--primary-soft);color:var(--primary);
+}
+.pmos-role-badge.admin{background:var(--accent-soft);color:#8a5a1c;}
+
+.pmos-actions{display:flex;gap:8px;}
+.pmos-btn{
+  font-family:'IBM Plex Sans',sans-serif;font-size:12.5px;font-weight:600;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  border-radius:7px;padding:7px 12px;cursor:pointer;
+  transition:background .12s ease, border-color .12s ease, transform .08s ease;
+}
+.pmos-btn:hover{background:var(--bg);}
+.pmos-btn:active{transform:translateY(1px);}
+.pmos-btn.primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+.pmos-btn.primary:hover{background:#173e37;}
+.pmos-btn.ghost-danger{color:var(--danger);}
+.pmos-btn.ghost-danger:hover{background:var(--danger-soft);border-color:var(--danger);}
+.pmos-btn.sm{padding:4px 9px;font-size:11.5px;}
+
+.pmos-tabs{display:flex;gap:6px;overflow-x:auto;}
+.pmos-tab{
+  font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12.5px;
+  padding:9px 14px 11px;background:var(--bg);border:1px solid var(--line);border-bottom:none;
+  border-radius:8px 8px 0 0;color:var(--ink-soft);cursor:pointer;position:relative;top:1px;
+  display:flex;align-items:center;gap:7px;white-space:nowrap;
+}
+.pmos-tab .count{font-family:'IBM Plex Mono',monospace;font-size:10.5px;background:var(--line);color:var(--ink);padding:1px 6px;border-radius:20px;}
+.pmos-tab.active{background:var(--surface);color:var(--ink);border-color:var(--line);border-bottom:2px solid var(--surface);}
+.pmos-tab.active .count{background:var(--primary-soft);color:var(--primary);}
+
+/* ---------- Sub bar (segment + KPIs) ---------- */
+.pmos-subbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 22px;background:var(--surface);border-bottom:1px solid var(--line);font-size:12.5px;}
+.pmos-segment{display:flex;background:var(--bg);border-radius:7px;padding:3px;gap:2px;}
+.pmos-seg-btn{border:none;background:none;font-size:12px;font-weight:600;padding:5px 11px;border-radius:6px;cursor:pointer;color:var(--ink-soft);}
+.pmos-seg-btn.active{background:var(--surface);color:var(--primary);box-shadow:var(--shadow);}
+.pmos-kpi{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+.pmos-kpi .stat{display:flex;align-items:baseline;gap:6px;color:var(--ink-soft);}
+.pmos-kpi .stat b{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);}
+.pmos-kpi .stat.overdue b{color:var(--danger);}
+.pmos-sla-note{font-size:11.5px;color:var(--ink-soft);font-style:italic;}
+.pmos-filter{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.pmos-filter select{font-size:12px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);}
+
+/* ---------- Board ---------- */
+.pmos-board-wrap{flex:1;overflow:auto;padding:18px 22px 22px;background:var(--bg);}
+.pmos-board{display:flex;gap:14px;align-items:flex-start;min-height:300px;}
+.pmos-empty{padding:40px;color:var(--ink-soft);font-size:13px;text-align:center;width:100%;}
+.pmos-col{flex:0 0 252px;background:rgba(255,255,255,0.6);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;max-height:100%;}
+.pmos-col-head{padding:10px 12px 8px;border-bottom:1px dashed var(--line);}
+.pmos-col-head .name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;}
+.pmos-col-head .name .count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);}
+.pmos-col-body{padding:10px;display:flex;flex-direction:column;gap:9px;min-height:60px;overflow-y:auto;}
+.pmos-col-body.dragover{background:var(--primary-soft);}
+.pmos-add-stage{border:none;background:none;text-align:left;padding:8px 12px 10px;font-size:11.5px;color:var(--ink-soft);cursor:pointer;font-weight:600;}
+.pmos-add-stage:hover{color:var(--primary);}
+
+.pmos-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 11px 9px 13px;cursor:grab;position:relative;box-shadow:var(--shadow);transition:transform .08s ease, box-shadow .12s ease;}
+.pmos-card:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(27,36,33,0.10);}
+.pmos-card::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:4px;border-radius:3px;background:var(--tag-color, var(--ink-soft));}
+.pmos-card.dragging{opacity:.4;}
+.pmos-card .ctitle{font-family:'Space Grotesk',sans-serif;font-size:12.8px;font-weight:600;line-height:1.3;margin-bottom:5px;padding-right:34px;}
+.pmos-card .cmeta{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px;}
+.pmos-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:var(--tag-soft, var(--bg));color:var(--tag-color, var(--ink-soft));}
+.pmos-cat{font-size:10px;color:var(--ink-soft);background:var(--bg);padding:2px 7px;border-radius:20px;}
+.pmos-card .cfoot{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--ink-soft);gap:6px;}
+.pmos-card .who{display:flex;align-items:center;gap:5px;overflow:hidden;}
+.pmos-card .who span.nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;}
+.pmos-card .cfoot .age.flag{color:var(--danger);font-weight:600;}
+.pmos-stamp{position:absolute;top:7px;right:-6px;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.6px;color:var(--primary);border:1.5px dashed var(--primary);padding:2px 6px;border-radius:4px;transform:rotate(8deg);background:rgba(255,255,255,0.85);}
+
+/* ---------- History table ---------- */
+.pmos-history-wrap{padding:6px 4px;}
+table.pmos-history-table{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--surface);border-radius:8px;overflow:hidden;}
+table.pmos-history-table th{text-align:left;color:var(--ink-soft);font-weight:600;padding:9px 12px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;}
+table.pmos-history-table td{padding:9px 12px;border-bottom:1px dashed var(--line);}
+table.pmos-history-table tr:last-child td{border-bottom:none;}
+
+/* ---------- Overlay + Drawer + Modal ---------- */
+.pmos-overlay{position:absolute;inset:0;background:rgba(27,36,33,0.35);opacity:0;visibility:hidden;transition:opacity .15s ease;z-index:30;}
+.pmos-overlay.show{opacity:1;visibility:visible;}
+.pmos-drawer{position:absolute;top:0;right:0;bottom:0;width:min(440px,92%);background:var(--surface);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .18s ease;z-index:31;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);}
+.pmos-drawer.show{transform:translateX(0);}
+.pmos-drawer-head{padding:16px 18px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.pmos-drawer-head h3{font-family:'Space Grotesk',sans-serif;font-size:15px;margin:0 0 4px;}
+.pmos-drawer-head .sub{font-size:11.5px;color:var(--ink-soft);}
+.pmos-x{border:none;background:none;cursor:pointer;font-size:18px;color:var(--ink-soft);line-height:1;padding:2px 4px;}
+.pmos-drawer-body{padding:16px 18px;overflow-y:auto;flex:1;}
+.pmos-field{margin-bottom:14px;}
+.pmos-field label{display:block;font-size:11px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;}
+.pmos-field select,.pmos-field input,.pmos-field textarea{width:100%;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);}
+.pmos-field textarea{resize:vertical;min-height:54px;}
+.pmos-row2{display:flex;gap:10px;}
+.pmos-row2 .pmos-field{flex:1;}
+.pmos-checklist{display:flex;flex-direction:column;gap:7px;}
+.pmos-checklist label{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:400;text-transform:none;color:var(--ink);letter-spacing:0;}
+.pmos-checklist input[type=checkbox]{width:auto;accent-color:var(--primary);}
+.pmos-divider{border:none;border-top:1px dashed var(--line);margin:16px 0;}
+.pmos-notes-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+.pmos-note{background:var(--bg);border-radius:7px;padding:8px 10px;}
+.pmos-note .meta{font-size:10px;color:var(--ink-soft);margin-bottom:3px;display:flex;justify-content:space-between;}
+.pmos-note .meta .author{font-weight:600;color:var(--primary);}
+.pmos-note .txt{font-size:12.5px;line-height:1.4;}
+.pmos-note-empty{font-size:12px;color:var(--ink-soft);font-style:italic;margin-bottom:12px;}
+.pmos-note-form{display:flex;flex-direction:column;gap:7px;}
+.pmos-note-form .pmos-btn{align-self:flex-end;}
+.pmos-drawer-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+.pmos-history-timeline{display:flex;flex-direction:column;gap:8px;}
+.pmos-history-item{display:flex;gap:8px;font-size:11.5px;color:var(--ink-soft);}
+.pmos-history-item .dot{width:7px;height:7px;border-radius:50%;background:var(--primary);margin-top:4px;flex:none;}
+.pmos-history-item b{color:var(--ink);}
+
+.pmos-modal-bg{position:absolute;inset:0;background:rgba(27,36,33,0.4);display:none;align-items:center;justify-content:center;z-index:40;padding:20px;}
+.pmos-modal-bg.show{display:flex;}
+.pmos-modal{background:var(--surface);border-radius:12px;width:min(440px,100%);max-height:88%;overflow-y:auto;padding:22px 24px;box-shadow:var(--shadow-lg);}
+.pmos-modal.wide{width:min(580px,100%);}
+.pmos-modal h3{font-family:'Space Grotesk',sans-serif;font-size:15.5px;margin:0 0 14px;}
+.pmos-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px;}
+.pmos-modal-tabs{display:flex;gap:4px;background:var(--bg);border-radius:8px;padding:3px;margin-bottom:18px;width:fit-content;}
+
+.pmos-dyn-rows{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
+.pmos-dyn-row{display:flex;gap:6px;align-items:center;}
+.pmos-dyn-row input{flex:1;}
+.pmos-row-x{border:none;background:var(--bg);color:var(--ink-soft);width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:14px;flex:none;}
+.pmos-row-x:hover{background:var(--danger-soft);color:var(--danger);}
+
+.pmos-admin-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);}
+.pmos-admin-row .grow{flex:1;}
+.pmos-admin-row .lbl{font-weight:600;font-size:13px;}
+.pmos-admin-row .sub{font-size:11px;color:var(--ink-soft);}
+.pmos-code-badge{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;background:var(--primary-soft);color:var(--primary);padding:2px 8px;border-radius:6px;flex:none;}
+
+.pmos-activity-row{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;padding-bottom:10px;border-bottom:1px dashed var(--line);}
+.pmos-activity-row:last-child{border-bottom:none;padding-bottom:0;}
+.pmos-activity-row .txt b{color:var(--primary);}
+.pmos-activity-row .meta{font-size:10.5px;color:var(--ink-soft);margin-top:2px;display:flex;gap:8px;align-items:center;}
+
+@media (max-width:560px){
+  .pmos-sla-note{display:none;}
+  .pmos-col{flex:0 0 220px;}
+  .pmos-filter{margin-left:0;}
+}
+</style>
+
+<div id="pmos-root">
+
+  <!-- ===================== LOGIN ===================== -->
+  <div id="pmos-login-view" class="pmos-login-wrap">
+    <div class="pmos-login-card">
+      <div class="pmos-login-stamp">PMOS</div>
+      <h2>Pipeline Board</h2>
+      <p>Sign in to your team's operations board.</p>
+      <div class="pmos-field"><label>Username</label><input id="pmos-login-username" autocomplete="username"></div>
+      <div class="pmos-field"><label>Password</label><input id="pmos-login-password" type="password" autocomplete="current-password"></div>
+      <div class="pmos-login-error" id="pmos-login-error"></div>
+      <button class="pmos-btn primary" id="pmos-login-submit" style="width:100%;">Sign in</button>
+      <div class="pmos-login-demo">Demo logins — admin/admin123 &nbsp;·&nbsp; priya/priya123 &nbsp;·&nbsp; jordan/jordan123</div>
+    </div>
+  </div>
+
+  <!-- ===================== APP ===================== -->
+  <div id="pmos-app-view" style="display:none;flex-direction:column;flex:1;min-height:0;">
+    <datalist id="pmos-user-names"></datalist>
+
+    <div class="pmos-topbar">
+      <div class="pmos-title-row">
+        <div class="pmos-title">PMOS Pipeline Board</div>
+        <div class="pmos-right-cluster">
+          <div class="pmos-actions">
+            <button class="pmos-btn" id="pmos-activity-btn">Activity</button>
+            <button class="pmos-btn" id="pmos-admin-btn" style="display:none;">Admin settings</button>
+            <button class="pmos-btn" id="pmos-reset">Reset tickets</button>
+            <button class="pmos-btn primary" id="pmos-new">+ New ticket</button>
+          </div>
+          <div class="pmos-user-pill" id="pmos-user-pill"></div>
+          <button class="pmos-btn sm" id="pmos-logout">Log out</button>
+        </div>
+      </div>
+      <div class="pmos-tabs" id="pmos-tabs"></div>
+    </div>
+
+    <div class="pmos-subbar">
+      <div class="pmos-segment">
+        <button class="pmos-seg-btn active" id="pmos-view-board">Board</button>
+        <button class="pmos-seg-btn" id="pmos-view-history">History</button>
+      </div>
+      <div class="pmos-kpi" id="pmos-kpi"></div>
+      <div class="pmos-filter">
+        <select id="pmos-filter-mine">
+          <option value="all">All tickets</option>
+          <option value="mine">Assigned to me</option>
+        </select>
+      </div>
+    </div>
+    <div style="padding:0 22px;background:var(--surface);">
+      <div class="pmos-sla-note" id="pmos-sla-note" style="padding-bottom:10px;"></div>
+    </div>
+
+    <div class="pmos-board-wrap">
+      <div class="pmos-board" id="pmos-board"></div>
+      <div class="pmos-history-wrap" id="pmos-history" style="display:none;"></div>
+    </div>
+
+    <div class="pmos-overlay" id="pmos-overlay"></div>
+
+    <div class="pmos-drawer" id="pmos-drawer">
+      <div class="pmos-drawer-head">
+        <div><h3 id="pmos-d-title">Ticket</h3><div class="sub" id="pmos-d-sub"></div></div>
+        <button class="pmos-x" id="pmos-d-close">&times;</button>
+      </div>
+      <div class="pmos-drawer-body" id="pmos-d-body"></div>
+      <div class="pmos-drawer-foot">
+        <button class="pmos-btn ghost-danger" id="pmos-d-delete">Delete ticket</button>
+        <span class="mono" id="pmos-d-age" style="font-size:11px;color:var(--ink-soft);"></span>
+      </div>
+    </div>
+
+    <div class="pmos-modal-bg" id="pmos-new-bg">
+      <div class="pmos-modal">
+        <h3>New ticket</h3>
+        <div id="pmos-new-fields"></div>
+        <div class="pmos-modal-actions">
+          <button class="pmos-btn" id="pmos-new-cancel">Cancel</button>
+          <button class="pmos-btn primary" id="pmos-new-create">Create ticket</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="pmos-modal-bg" id="pmos-admin-bg">
+      <div class="pmos-modal wide">
+        <h3>Admin settings</h3>
+        <div class="pmos-modal-tabs">
+          <button class="pmos-seg-btn active" id="admin-tab-btn-team">Team</button>
+          <button class="pmos-seg-btn" id="admin-tab-btn-services">Services</button>
+        </div>
+        <div id="admin-tab-team"></div>
+        <div id="admin-tab-services" style="display:none;"></div>
+        <div class="pmos-modal-actions"><button class="pmos-btn" id="admin-close">Close</button></div>
+      </div>
+    </div>
+
+    <div class="pmos-modal-bg" id="pmos-activity-bg">
+      <div class="pmos-modal wide">
+        <h3>Recent activity</h3>
+        <div id="activity-list" style="display:flex;flex-direction:column;gap:0;max-height:60vh;overflow-y:auto;"></div>
+        <div class="pmos-modal-actions"><button class="pmos-btn" id="activity-close">Close</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+/* ============================================================
+   Palette + helpers
+   ============================================================ */
+const PALETTE = [
+  {name:'Rust',     color:'#B23A2E', soft:'#F6DEDA'},
+  {name:'Amber',    color:'#D98E3B', soft:'#F8E9D3'},
+  {name:'Pine',     color:'#1F4B43', soft:'#E4ECE9'},
+  {name:'Slate',    color:'#5B6660', soft:'#E7E9E5'},
+  {name:'Plum',     color:'#6B3F69', soft:'#EBE0EA'},
+  {name:'Teal',     color:'#1E6E73', soft:'#DCEBEC'},
+  {name:'Coral',    color:'#C75450', soft:'#F5DEDC'},
+  {name:'Graphite', color:'#33403B', soft:'#E2E6E3'}
+];
+function swatch(name){ return PALETTE.find(p=>p.name===name) || PALETTE[3]; }
+function hashStr(s){
+  let h=0;
+  for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))|0; }
+  return Math.abs(h);
+}
+function avatarSwatch(name){ return PALETTE[hashStr(name||'?') % PALETTE.length]; }
+function initials(name){
+  if(!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0]||'')+(parts[1]?.[0]||'')).toUpperCase() || name[0].toUpperCase();
+}
+function avatarHTML(name, size){
+  const s = avatarSwatch(name);
+  const px = size||22;
+  return `<span class="pmos-avatar" style="width:${px}px;height:${px}px;font-size:${Math.round(px*0.42)}px;background:${s.color};">${initials(name)}</span>`;
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function uid(p){ return (p||'t_')+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4); }
+function nowISO(){ return new Date().toISOString(); }
+function daysAgoISO(n){ return new Date(Date.now()-n*86400000).toISOString(); }
+function ageDays(iso){ return Math.max(0, Math.floor((Date.now()-new Date(iso).getTime())/86400000)); }
+function fmtDate(iso){
+  const d=new Date(iso);
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+}
+function fmtDateOnly(iso){ return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+// Lightweight, non-cryptographic hash used only to avoid storing raw passwords in shared storage.
+// This is a client-side demo tool with no real backend — it is not secure enough for sensitive credentials.
+function hashPassword(pw){
+  let h=5381;
+  for(let i=0;i<pw.length;i++){ h = ((h*33) ^ pw.charCodeAt(i))>>>0; }
+  return 'h'+h.toString(36)+'_'+pw.length;
+}
+const $ = (sel,root)=> (root||document).querySelector(sel);
+
+/* ============================================================
+   Default data
+   ============================================================ */
+const DEFAULT_PIPELINES = [
+  {id:'leasing', label:'Leasing & Placement', code:'A',
+    stages:['New Lead','Contacted','Showing','Applied','Screening','Approved','Lease Sent','Signed & Paid','Moved In'],
+    tagField:{label:'Lead Temp', options:[{name:'Hot',swatch:'Amber',slaDays:2},{name:'Warm',swatch:'Pine',slaDays:4},{name:'Cold',swatch:'Slate',slaDays:7}]},
+    categoryField:{label:'Source', options:['Zillow','Apartments.com','MLS','Referral','Drive-by','Other']},
+    defaultChecklist:['ID collected','Pay stubs / bank statements','Rental history checked','Background check run']},
+  {id:'maintenance', label:'Maintenance & Vendors', code:'C',
+    stages:['Reported','Triaged','Vendor Assigned','Confirmed','Scheduled','In Progress','Invoice Pending','Closed'],
+    tagField:{label:'Urgency', options:[{name:'Emergency',swatch:'Rust',slaDays:1},{name:'Urgent',swatch:'Amber',slaDays:2},{name:'Routine',swatch:'Pine',slaDays:7}]},
+    categoryField:{label:'Category', options:['HVAC','Plumbing','Electrical','General','Appliance']},
+    defaultChecklist:['Photos before','Photos after','Invoice uploaded','Tenant notified']},
+  {id:'turns', label:'Unit Turns', code:'D',
+    stages:['Notice Received','Walkthrough','Scope Defined','Vendor Work','Touch-ups','Turn Complete','Re-Leased'],
+    tagField:{label:'Priority', options:[{name:'Rush',swatch:'Amber',slaDays:3},{name:'Standard',swatch:'Pine',slaDays:7}]},
+    categoryField:{label:'Turn Size', options:['Light Turn','Standard Turn','Heavy Turn']},
+    defaultChecklist:['Smoke detectors tested','All lights functioning','Plumbing leak-free','Doors/locks tested','Deep clean complete','Marketing photos taken']},
+  {id:'escalation', label:'Escalation & Legal', code:'E',
+    stages:['Logged','Verifying','Verbal Warning','Written Notice','Cure or Quit','Eviction Filed','Resolved'],
+    tagField:{label:'Severity', options:[{name:'Severe',swatch:'Rust',slaDays:2},{name:'Moderate',swatch:'Amber',slaDays:5},{name:'Minor',swatch:'Slate',slaDays:10}]},
+    categoryField:{label:'Violation Type', options:['Non-payment','Noise','Damage','Lease Violation','Illegal Activity','Unauthorized Occupant','Habitability']},
+    defaultChecklist:['Complaint documented','Facts verified (photos / witness / vendor report)','Notice delivered in writing']}
+];
+
+function defaultUsers(){
+  return [
+    {id:uid('u_'), username:'admin',  passwordHash:hashPassword('admin123'),  role:'admin', displayName:'Alex Rivera'},
+    {id:uid('u_'), username:'priya',  passwordHash:hashPassword('priya123'),  role:'staff', displayName:'Priya Shah'},
+    {id:uid('u_'), username:'jordan', passwordHash:hashPassword('jordan123'), role:'staff', displayName:'Jordan Lee'}
+  ];
+}
+
+function seedTickets(){
+  const mk = (pipeline, stageIndex, d)=>{
+    const cfg = pipelines.find(p=>p.id===pipeline);
+    const enteredAt = daysAgoISO(d.stageAgo);
+    const isTerminal = stageIndex === cfg.stages.length-1;
+    return {
+      id:uid(), pipeline, stageIndex,
+      title:d.title, property:d.property, unit:d.unit,
+      tag:d.tag, category:d.category, assignedTo:d.assignedTo,
+      createdAt:daysAgoISO(d.createdAgo), stageEnteredAt:enteredAt,
+      completedAt: isTerminal ? enteredAt : null,
+      checklist: cfg.defaultChecklist.map(label=>({label,done:false})),
+      notes: d.notes || [],
+      history:[{stageIndex, stageName:cfg.stages[stageIndex], enteredAt, exitedAt:null, by:d.assignedTo}]
+    };
+  };
+  return [
+    mk('leasing',2,{title:'Maplewood #4B — Sarah Chen',property:'Maplewood Apartments',unit:'4B',tag:'Hot',category:'Zillow',assignedTo:'Priya Shah',createdAgo:2,stageAgo:1,
+      notes:[{author:'Priya Shah',text:'Showed the unit, she loved it — sending the application link today.',ts:daysAgoISO(1)}]}),
+    mk('leasing',0,{title:'Oak St #1 — Marcus Webb',property:'Oak Street Duplex',unit:'1',tag:'Warm',category:'Referral',assignedTo:'Jordan Lee',createdAgo:1,stageAgo:1,notes:[]}),
+    mk('leasing',6,{title:'Birchwood #12 — Dana Ruiz',property:'Birchwood Court',unit:'12',tag:'Hot',category:'Apartments.com',assignedTo:'Priya Shah',createdAgo:6,stageAgo:1,
+      notes:[{author:'Priya Shah',text:'Lease sent electronically. Waiting on signature and deposit.',ts:daysAgoISO(1)}]}),
+    mk('leasing',8,{title:'Maplewood #2A — Completed move-in',property:'Maplewood Apartments',unit:'2A',tag:'Warm',category:'MLS',assignedTo:'Priya Shah',createdAgo:14,stageAgo:9,notes:[]}),
+
+    mk('maintenance',2,{title:'Maplewood #4B — No heat',property:'Maplewood Apartments',unit:'4B',tag:'Emergency',category:'HVAC',assignedTo:'Vendor: ColdStar HVAC',createdAgo:2,stageAgo:2,
+      notes:[{author:'Jordan Lee',text:'Tenant reports no heat overnight. Dispatched ColdStar, waiting on confirmation call.',ts:daysAgoISO(2)}]}),
+    mk('maintenance',5,{title:'Oak St #2 — Leaky faucet',property:'Oak Street Duplex',unit:'2',tag:'Routine',category:'Plumbing',assignedTo:'In-house handyman',createdAgo:3,stageAgo:1,notes:[]}),
+    mk('maintenance',1,{title:'Birchwood #7 — Outlet not working',property:'Birchwood Court',unit:'7',tag:'Urgent',category:'Electrical',assignedTo:'Vendor: Volt Right Electric',createdAgo:1,stageAgo:1,notes:[]}),
+    mk('maintenance',7,{title:'Oak St #4 — Garbage disposal replaced',property:'Oak Street Duplex',unit:'4',tag:'Routine',category:'Appliance',assignedTo:'In-house handyman',createdAgo:10,stageAgo:6,notes:[]}),
+
+    mk('turns',3,{title:'Maplewood #9C — Move-out turn',property:'Maplewood Apartments',unit:'9C',tag:'Standard',category:'Standard Turn',assignedTo:'Jordan Lee',createdAgo:5,stageAgo:2,
+      notes:[{author:'Jordan Lee',text:'Trash-out done. Paint and cleaning crew booked for this week.',ts:daysAgoISO(2)}]}),
+    mk('turns',0,{title:'Oak St #1 — Heavy turn',property:'Oak Street Duplex',unit:'1',tag:'Rush',category:'Heavy Turn',assignedTo:'Jordan Lee',createdAgo:1,stageAgo:1,notes:[]}),
+    mk('turns',6,{title:'Birchwood #3 — Re-leased',property:'Birchwood Court',unit:'3',tag:'Standard',category:'Light Turn',assignedTo:'Priya Shah',createdAgo:10,stageAgo:4,notes:[]}),
+
+    mk('escalation',3,{title:'Oak St #2 — Late rent, 2nd month',property:'Oak Street Duplex',unit:'2',tag:'Moderate',category:'Non-payment',assignedTo:'Priya Shah',createdAgo:20,stageAgo:3,notes:[]}),
+    mk('escalation',1,{title:'Maplewood #6 — Noise complaints',property:'Maplewood Apartments',unit:'6',tag:'Minor',category:'Noise',assignedTo:'Priya Shah',createdAgo:4,stageAgo:2,notes:[]}),
+    mk('escalation',4,{title:'Birchwood #12 — Unauthorized occupant',property:'Birchwood Court',unit:'12',tag:'Severe',category:'Unauthorized Occupant',assignedTo:'Alex Rivera',createdAgo:15,stageAgo:5,
+      notes:[{author:'Alex Rivera',text:'Confirmed via lease audit and a neighbor report. Cure-or-quit notice served.',ts:daysAgoISO(5)}]}),
+    mk('escalation',6,{title:'Maplewood #1 — Resolved noise complaint',property:'Maplewood Apartments',unit:'1',tag:'Minor',category:'Noise',assignedTo:'Priya Shah',createdAgo:12,stageAgo:8,notes:[]})
+  ];
+}
+
+/* ============================================================
+   State
+   ============================================================ */
+let users = [];
+let pipelines = [];
+let tickets = [];
+let currentUser = null;
+let activePipelineId = null;
+let activeView = 'board';
+let filterMine = false;
+let openTicketId = null;
+let pendingNewStage = {pipelineId:null, stageIndex:0};
+let adminTab = 'team';
+
+function isAdmin(){ return !!currentUser && currentUser.role==='admin'; }
+function activePipeline(){ return pipelines.find(p=>p.id===activePipelineId) || null; }
+function isOverdue(pipeline, ticket){
+  if(ticket.stageIndex >= pipeline.stages.length-1) return false;
+  const opt = pipeline.tagField.options.find(o=>o.name===ticket.tag);
+  const sla = opt ? opt.slaDays : 7;
+  return ageDays(ticket.stageEnteredAt) >= sla;
+}
+function slaNoteFor(pipeline){
+  return 'SLA — ' + pipeline.tagField.options.map(o=>`${o.name} ${o.slaDays}d`).join(' · ');
+}
+function slugify(label){
+  let base = label.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'service';
+  let id = base, n=2;
+  while(pipelines.find(p=>p.id===id)){ id = base+'-'+n; n++; }
+  return id;
+}
+function nextCode(){
+  const used = pipelines.map(p=>p.code);
+  for(let i=0;i<26;i++){ const c=String.fromCharCode(65+i); if(!used.includes(c)) return c; }
+  return 'S'+(pipelines.length+1);
+}
+
+/* ============================================================
+   Storage (shared across everyone who opens this board)
+   ============================================================ */
+async function loadShared(key, seedFn){
+  try{
+    const res = await window.storage.get(key, true);
+    if(res && res.value) return JSON.parse(res.value);
+  }catch(e){ /* missing key throws — fall through to seed */ }
+  const seeded = seedFn();
+  try{ await window.storage.set(key, JSON.stringify(seeded), true); }catch(e){}
+  return seeded;
+}
+async function saveUsers(){ try{ await window.storage.set('pmos-users', JSON.stringify(users), true); }catch(e){} }
+async function savePipelines(){ try{ await window.storage.set('pmos-pipelines', JSON.stringify(pipelines), true); }catch(e){} }
+async function saveTickets(){ try{ await window.storage.set('pmos-tickets', JSON.stringify(tickets), true); }catch(e){} }
+async function saveSession(username){ try{ await window.storage.set('pmos-session', JSON.stringify({username}), false); }catch(e){} }
+async function clearSession(){ try{ await window.storage.delete('pmos-session', false); }catch(e){} }
+async function loadSession(){
+  try{ const r = await window.storage.get('pmos-session', false); return r && r.value ? JSON.parse(r.value) : null; }
+  catch(e){ return null; }
+}
+
+/* ============================================================
+   Login / session
+   ============================================================ */
+function showLogin(){
+  $('#pmos-login-view').style.display='flex';
+  $('#pmos-app-view').style.display='none';
+  $('#pmos-login-error').textContent='';
+  $('#pmos-login-username').value='';
+  $('#pmos-login-password').value='';
+}
+function showApp(){
+  $('#pmos-login-view').style.display='none';
+  $('#pmos-app-view').style.display='flex';
+  renderAll();
+}
+function attemptLogin(){
+  const uname = $('#pmos-login-username').value.trim().toLowerCase();
+  const pw = $('#pmos-login-password').value;
+  const u = users.find(x=>x.username.toLowerCase()===uname && x.passwordHash===hashPassword(pw));
+  if(!u){ $('#pmos-login-error').textContent = 'Incorrect username or password.'; return; }
+  currentUser = u;
+  saveSession(u.username);
+  showApp();
+}
+$('#pmos-login-submit').addEventListener('click', attemptLogin);
+$('#pmos-login-password').addEventListener('keydown', e=>{ if(e.key==='Enter') attemptLogin(); });
+$('#pmos-login-username').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#pmos-login-password').focus(); });
+
+$('#pmos-logout').addEventListener('click', ()=>{
+  currentUser=null; clearSession(); closeDrawer(); showLogin();
+});
+
+/* ============================================================
+   Rendering — chrome
+   ============================================================ */
+function refreshUserDatalist(){
+  $('#pmos-user-names').innerHTML = users.map(u=>`<option value="${escapeHtml(u.displayName)}">`).join('');
+}
+function renderUserPill(){
+  const sw = avatarSwatch(currentUser.displayName);
+  $('#pmos-user-pill').innerHTML = `
+    ${avatarHTML(currentUser.displayName,26)}
+    <span class="name">${escapeHtml(currentUser.displayName)}</span>
+    <span class="pmos-role-badge ${currentUser.role}">${currentUser.role}</span>
+  `;
+  $('#pmos-admin-btn').style.display = isAdmin() ? 'inline-block' : 'none';
+}
+function renderTabs(){
+  const el = $('#pmos-tabs');
+  if(!pipelines.length){ el.innerHTML=''; return; }
+  el.innerHTML = pipelines.map(p=>{
+    const count = tickets.filter(t=>t.pipeline===p.id).length;
+    return `<div class="pmos-tab ${p.id===activePipelineId?'active':''}" data-pipe="${p.id}">
+      <span>${escapeHtml(p.code)} · ${escapeHtml(p.label)}</span><span class="count mono">${count}</span>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.pmos-tab').forEach(t=>{
+    t.addEventListener('click',()=>{ activePipelineId=t.dataset.pipe; renderAll(); });
+  });
+}
+function renderSubbar(){
+  $('#pmos-view-board').classList.toggle('active', activeView==='board');
+  $('#pmos-view-history').classList.toggle('active', activeView==='history');
+  const pipeline = activePipeline();
+  if(!pipeline){
+    $('#pmos-kpi').innerHTML=''; $('#pmos-sla-note').textContent=''; return;
+  }
+  const cards = tickets.filter(t=>t.pipeline===pipeline.id);
+  const terminal = pipeline.stages.length-1;
+  const active = cards.filter(c=>c.stageIndex<terminal);
+  const overdue = cards.filter(c=>isOverdue(pipeline,c));
+  const avgAge = active.length ? Math.round(active.reduce((s,c)=>s+ageDays(c.createdAt),0)/active.length) : 0;
+  const completed = cards.filter(c=>c.completedAt).length;
+  $('#pmos-kpi').innerHTML = `
+    <div class="stat">Active <b>${active.length}</b></div>
+    <div class="stat">Avg age <b>${avgAge}d</b></div>
+    <div class="stat ${overdue.length?'overdue':''}">Overdue <b>${overdue.length}</b></div>
+    <div class="stat">Completed <b>${completed}</b></div>
+  `;
+  $('#pmos-sla-note').textContent = slaNoteFor(pipeline);
+}
+
+/* ============================================================
+   Board view
+   ============================================================ */
+function visibleTickets(pipelineId){
+  let list = tickets.filter(t=>t.pipeline===pipelineId);
+  if(filterMine && currentUser){
+    list = list.filter(t=> (t.assignedTo||'').trim().toLowerCase() === currentUser.displayName.trim().toLowerCase());
+  }
+  return list;
+}
+function renderBoard(){
+  const board = $('#pmos-board');
+  const pipeline = activePipeline();
+  if(!pipeline){
+    board.innerHTML = `<div class="pmos-empty">No services configured yet.${isAdmin()?' Open <b>Admin settings → Services</b> to add one.':' Ask an admin to add a service.'}</div>`;
+    return;
+  }
+  const cards = visibleTickets(pipeline.id);
+  board.innerHTML = pipeline.stages.map((stageName, idx)=>{
+    const here = cards.filter(c=>c.stageIndex===idx);
+    return `
+    <div class="pmos-col" data-stage="${idx}">
+      <div class="pmos-col-head"><div class="name"><span>${escapeHtml(stageName)}</span><span class="count">${here.length}</span></div></div>
+      <div class="pmos-col-body" data-stage="${idx}">${here.map(c=>cardHTML(pipeline,c)).join('')}</div>
+      <button class="pmos-add-stage" data-stage="${idx}">+ Add ticket here</button>
+    </div>`;
+  }).join('');
+
+  board.querySelectorAll('.pmos-card').forEach(el=>{
+    el.addEventListener('dragstart',e=>{ el.classList.add('dragging'); e.dataTransfer.setData('text/plain', el.dataset.id); });
+    el.addEventListener('dragend',()=> el.classList.remove('dragging'));
+    el.addEventListener('click',()=> openDrawer(el.dataset.id));
+  });
+  board.querySelectorAll('.pmos-col-body').forEach(col=>{
+    col.addEventListener('dragover',e=>{ e.preventDefault(); col.classList.add('dragover'); });
+    col.addEventListener('dragleave',()=> col.classList.remove('dragover'));
+    col.addEventListener('drop',e=>{
+      e.preventDefault(); col.classList.remove('dragover');
+      const id = e.dataTransfer.getData('text/plain');
+      const card = tickets.find(t=>t.id===id);
+      const newStage = parseInt(col.dataset.stage,10);
+      if(card) moveTicketToStage(card, newStage, true);
+    });
+  });
+  board.querySelectorAll('.pmos-add-stage').forEach(btn=>{
+    btn.addEventListener('click',()=> openNewTicketModal(parseInt(btn.dataset.stage,10)));
+  });
+}
+function cardHTML(pipeline, c){
+  const opt = pipeline.tagField.options.find(o=>o.name===c.tag) || pipeline.tagField.options[0] || {swatch:'Slate'};
+  const sw = swatch(opt.swatch);
+  const overdue = isOverdue(pipeline,c);
+  const terminal = c.stageIndex===pipeline.stages.length-1;
+  const who = c.assignedTo || 'Unassigned';
+  return `
+  <div class="pmos-card" draggable="true" data-id="${c.id}" style="--tag-color:${sw.color};--tag-soft:${sw.soft};">
+    ${terminal?'<div class="pmos-stamp">DONE</div>':''}
+    <div class="ctitle">${escapeHtml(c.title)}</div>
+    <div class="cmeta"><span class="pmos-tag">${escapeHtml(c.tag)}</span><span class="pmos-cat">${escapeHtml(c.category)}</span></div>
+    <div class="cfoot">
+      <span class="who">${avatarHTML(who,18)}<span class="nm">${escapeHtml(who)}</span></span>
+      <span class="age ${overdue?'flag':''}">${overdue?'⚠ ':''}${ageDays(c.stageEnteredAt)}d in stage</span>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   History view
+   ============================================================ */
+function renderHistory(){
+  const wrap = $('#pmos-history');
+  const pipeline = activePipeline();
+  if(!pipeline){ wrap.innerHTML=''; return; }
+  let done = visibleTickets(pipeline.id).filter(t=>t.completedAt);
+  done = done.sort((a,b)=> new Date(b.completedAt)-new Date(a.completedAt));
+  if(!done.length){
+    wrap.innerHTML = `<div class="pmos-empty">No completed tickets yet in ${escapeHtml(pipeline.label)}.</div>`;
+    return;
+  }
+  wrap.innerHTML = `
+  <table class="pmos-history-table">
+    <thead><tr><th>Ticket</th><th>Property / Unit</th><th>Assigned to</th><th>Created</th><th>Completed</th><th>Days</th><th>Completed by</th></tr></thead>
+    <tbody>
+      ${done.map(t=>{
+        const days = Math.max(0, Math.round((new Date(t.completedAt)-new Date(t.createdAt))/86400000));
+        const last = t.history[t.history.length-1];
+        return `<tr>
+          <td>${escapeHtml(t.title)}</td>
+          <td>${escapeHtml(t.property)}${t.unit?' #'+escapeHtml(t.unit):''}</td>
+          <td>${escapeHtml(t.assignedTo||'—')}</td>
+          <td class="mono">${fmtDateOnly(t.createdAt)}</td>
+          <td class="mono">${fmtDateOnly(t.completedAt)}</td>
+          <td class="mono">${days}</td>
+          <td>${escapeHtml(last?last.by:'—')}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
+$('#pmos-view-board').addEventListener('click',()=>{ activeView='board'; $('#pmos-board').style.display='flex'; $('#pmos-history').style.display='none'; renderAll(); });
+$('#pmos-view-history').addEventListener('click',()=>{ activeView='history'; $('#pmos-board').style.display='none'; $('#pmos-history').style.display='block'; renderAll(); });
+$('#pmos-filter-mine').addEventListener('change', e=>{ filterMine = e.target.value==='mine'; renderAll(true); });
+
+/* ============================================================
+   Stage transitions (logs history + completion dates)
+   ============================================================ */
+function moveTicketToStage(ticket, newIndex, persist){
+  const pipeline = pipelines.find(p=>p.id===ticket.pipeline);
+  if(!pipeline || ticket.stageIndex===newIndex) return;
+  const ts = nowISO();
+  const last = ticket.history[ticket.history.length-1];
+  if(last && !last.exitedAt) last.exitedAt = ts;
+  ticket.history.push({stageIndex:newIndex, stageName:pipeline.stages[newIndex], enteredAt:ts, exitedAt:null, by: currentUser?currentUser.displayName:'Unknown'});
+  ticket.stageIndex = newIndex;
+  ticket.stageEnteredAt = ts;
+  ticket.completedAt = (newIndex===pipeline.stages.length-1) ? ts : null;
+  if(persist){ saveTickets(); renderAll(true); }
+}
+
+/* ============================================================
+   Drawer — ticket detail, checklist, notes, stage history
+   ============================================================ */
+function openDrawer(id){
+  openTicketId = id;
+  const c = tickets.find(t=>t.id===id);
+  if(!c) return;
+  const pipeline = pipelines.find(p=>p.id===c.pipeline);
+  if(!pipeline) return;
+
+  $('#pmos-d-title').textContent = c.title;
+  $('#pmos-d-sub').textContent = `${pipeline.code} · ${pipeline.label} — ${pipeline.stages[c.stageIndex]}`;
+  $('#pmos-d-age').textContent = `Created ${fmtDate(c.createdAt)} · ${ageDays(c.createdAt)}d old`;
+
+  const tagOpts = pipeline.tagField.options.map(o=>`<option value="${escapeHtml(o.name)}" ${o.name===c.tag?'selected':''}>${escapeHtml(o.name)}</option>`).join('');
+  const catOpts = pipeline.categoryField.options.map(o=>`<option value="${escapeHtml(o)}" ${o===c.category?'selected':''}>${escapeHtml(o)}</option>`).join('');
+  const stageOpts = pipeline.stages.map((s,i)=>`<option value="${i}" ${i===c.stageIndex?'selected':''}>${escapeHtml(s)}</option>`).join('');
+
+  $('#pmos-d-body').innerHTML = `
+    <div class="pmos-row2">
+      <div class="pmos-field"><label>Property</label><input id="f-property" value="${escapeHtml(c.property)}"></div>
+      <div class="pmos-field"><label>Unit</label><input id="f-unit" value="${escapeHtml(c.unit)}"></div>
+    </div>
+    <div class="pmos-row2">
+      <div class="pmos-field"><label>${escapeHtml(pipeline.tagField.label)}</label><select id="f-tag">${tagOpts}</select></div>
+      <div class="pmos-field"><label>${escapeHtml(pipeline.categoryField.label)}</label><select id="f-category">${catOpts}</select></div>
+    </div>
+    <div class="pmos-row2">
+      <div class="pmos-field"><label>Stage</label><select id="f-stage">${stageOpts}</select></div>
+      <div class="pmos-field"><label>Assigned To</label><input id="f-assigned" list="pmos-user-names" value="${escapeHtml(c.assignedTo)}"></div>
+    </div>
+
+    <hr class="pmos-divider">
+    <div class="pmos-field"><label>Checklist</label>
+      <div class="pmos-checklist" id="f-checklist">
+        ${c.checklist.map((item,i)=>`<label><input type="checkbox" data-idx="${i}" ${item.done?'checked':''}> ${escapeHtml(item.label)}</label>`).join('')}
+      </div>
+    </div>
+
+    <hr class="pmos-divider">
+    <div class="pmos-field" style="margin-bottom:8px;"><label>Asset Manager Notes</label></div>
+    <div class="pmos-notes-list" id="f-notes-list">
+      ${c.notes.length ? c.notes.map(n=>`
+        <div class="pmos-note">
+          <div class="meta"><span class="author">${escapeHtml(n.author||'Asset Manager')}</span><span class="mono">${fmtDate(n.ts)}</span></div>
+          <div class="txt">${escapeHtml(n.text)}</div>
+        </div>`).join('') : '<div class="pmos-note-empty">No notes yet — log a status update below.</div>'}
+    </div>
+    <div class="pmos-note-form">
+      <textarea id="f-note-text" placeholder="What's the latest update on this ticket?"></textarea>
+      <button class="pmos-btn primary" id="f-note-add">Add note as ${escapeHtml(currentUser.displayName)}</button>
+    </div>
+
+    <hr class="pmos-divider">
+    <div class="pmos-field" style="margin-bottom:8px;"><label>Stage history</label></div>
+    <div class="pmos-history-timeline">
+      ${c.history.slice().reverse().map(h=>{
+        const dur = h.exitedAt ? Math.max(0,Math.round((new Date(h.exitedAt)-new Date(h.enteredAt))/86400000)) : ageDays(h.enteredAt);
+        return `<div class="pmos-history-item"><span class="dot"></span><div>
+          <b>${escapeHtml(h.stageName)}</b> — entered ${fmtDate(h.enteredAt)} by ${escapeHtml(h.by||'Unknown')}
+          ${h.exitedAt ? `<br>spent ${dur}d here` : `<br>${dur}d and counting`}
+        </div></div>`;
+      }).join('')}
+    </div>
+  `;
+
+  $('#f-property').addEventListener('change',e=>{ c.property=e.target.value; saveTickets(); renderAll(true); });
+  $('#f-unit').addEventListener('change',e=>{ c.unit=e.target.value; saveTickets(); renderAll(true); });
+  $('#f-tag').addEventListener('change',e=>{ c.tag=e.target.value; saveTickets(); renderAll(true); });
+  $('#f-category').addEventListener('change',e=>{ c.category=e.target.value; saveTickets(); renderAll(true); });
+  $('#f-assigned').addEventListener('change',e=>{ c.assignedTo=e.target.value; saveTickets(); renderAll(true); });
+  $('#f-stage').addEventListener('change',e=>{
+    moveTicketToStage(c, parseInt(e.target.value,10), false);
+    saveTickets(); renderAll(true);
+  });
+  $('#f-checklist').querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change',e=>{
+      c.checklist[parseInt(e.target.dataset.idx,10)].done = e.target.checked;
+      saveTickets();
+    });
+  });
+  $('#f-note-add').addEventListener('click',()=>{
+    const text = $('#f-note-text').value.trim();
+    if(!text) return;
+    c.notes.push({author:currentUser.displayName, text, ts:nowISO()});
+    saveTickets();
+    openDrawer(id);
+  });
+
+  $('#pmos-overlay').classList.add('show');
+  $('#pmos-drawer').classList.add('show');
+}
+function closeDrawer(){
+  openTicketId = null;
+  $('#pmos-overlay').classList.remove('show');
+  $('#pmos-drawer').classList.remove('show');
+}
+$('#pmos-d-close').addEventListener('click', closeDrawer);
+$('#pmos-overlay').addEventListener('click', closeDrawer);
+$('#pmos-d-delete').addEventListener('click', ()=>{
+  if(!openTicketId) return;
+  if(!confirm('Delete this ticket? This cannot be undone.')) return;
+  tickets = tickets.filter(t=>t.id!==openTicketId);
+  closeDrawer();
+  saveTickets(); renderAll();
+});
+
+/* ============================================================
+   New ticket modal
+   ============================================================ */
+function openNewTicketModal(stageIndex){
+  const pipeline = activePipeline();
+  if(!pipeline){ alert('Create a service first in Admin settings.'); return; }
+  pendingNewStage = {pipelineId: pipeline.id, stageIndex};
+  const tagOpts = pipeline.tagField.options.map(o=>`<option value="${escapeHtml(o.name)}">${escapeHtml(o.name)}</option>`).join('');
+  const catOpts = pipeline.categoryField.options.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+  $('#pmos-new-fields').innerHTML = `
+    <div class="pmos-field"><label>Title</label><input id="n-title" placeholder="e.g. Maplewood #5A — Jane Doe"></div>
+    <div class="pmos-row2">
+      <div class="pmos-field"><label>Property</label><input id="n-property"></div>
+      <div class="pmos-field"><label>Unit</label><input id="n-unit"></div>
+    </div>
+    <div class="pmos-row2">
+      <div class="pmos-field"><label>${escapeHtml(pipeline.tagField.label)}</label><select id="n-tag">${tagOpts}</select></div>
+      <div class="pmos-field"><label>${escapeHtml(pipeline.categoryField.label)}</label><select id="n-category">${catOpts}</select></div>
+    </div>
+    <div class="pmos-field"><label>Assigned To</label><input id="n-assigned" list="pmos-user-names" placeholder="Asset Manager / PM / Vendor name"></div>
+    <div class="pmos-field"><label>Starting stage</label><input value="${escapeHtml(pipeline.stages[stageIndex])}" disabled></div>
+  `;
+  $('#pmos-new-bg').classList.add('show');
+  setTimeout(()=> $('#n-title').focus(), 30);
+}
+$('#pmos-new').addEventListener('click', ()=> openNewTicketModal(0));
+$('#pmos-new-cancel').addEventListener('click', ()=> $('#pmos-new-bg').classList.remove('show'));
+$('#pmos-new-create').addEventListener('click', ()=>{
+  const title = $('#n-title').value.trim();
+  if(!title){ $('#n-title').focus(); return; }
+  const pipeline = pipelines.find(p=>p.id===pendingNewStage.pipelineId);
+  if(!pipeline) return;
+  const ts = nowISO();
+  const startIdx = pendingNewStage.stageIndex;
+  const assignedTo = $('#n-assigned').value.trim();
+  tickets.push({
+    id:uid(), pipeline:pipeline.id, stageIndex:startIdx,
+    title, property:$('#n-property').value.trim(), unit:$('#n-unit').value.trim(),
+    tag:$('#n-tag').value, category:$('#n-category').value, assignedTo,
+    createdAt:ts, stageEnteredAt:ts,
+    completedAt: startIdx===pipeline.stages.length-1 ? ts : null,
+    checklist: pipeline.defaultChecklist.map(label=>({label,done:false})),
+    notes:[],
+    history:[{stageIndex:startIdx, stageName:pipeline.stages[startIdx], enteredAt:ts, exitedAt:null, by:currentUser.displayName}]
+  });
+  $('#pmos-new-bg').classList.remove('show');
+  saveTickets(); renderAll();
+});
+
+$('#pmos-reset').addEventListener('click', ()=>{
+  if(!confirm('Reset all tickets back to the demo set? This only affects tickets — your team and services stay as configured.')) return;
+  tickets = seedTickets(); saveTickets(); renderAll();
+});
+
+/* ============================================================
+   Activity feed (cross-pipeline, cross-user)
+   ============================================================ */
+function buildActivityFeed(){
+  const events = [];
+  tickets.forEach(t=>{
+    const pipeline = pipelines.find(p=>p.id===t.pipeline);
+    const label = pipeline ? `${pipeline.code} · ${pipeline.label}` : t.pipeline;
+    t.history.forEach(h=>{
+      events.push({ts:h.enteredAt, by:h.by, text:`moved <b>${escapeHtml(t.title)}</b> to "${escapeHtml(h.stageName)}"`, label});
+    });
+    t.notes.forEach(n=>{
+      events.push({ts:n.ts, by:n.author, text:`left a note on <b>${escapeHtml(t.title)}</b>`, label});
+    });
+  });
+  events.sort((a,b)=> new Date(b.ts)-new Date(a.ts));
+  return events.slice(0,30);
+}
+function openActivityModal(){
+  const events = buildActivityFeed();
+  $('#activity-list').innerHTML = events.length ? events.map(e=>`
+    <div class="pmos-activity-row">
+      ${avatarHTML(e.by,26)}
+      <div class="grow">
+        <div class="txt"><b>${escapeHtml(e.by||'Unknown')}</b> ${e.text}</div>
+        <div class="meta"><span class="mono">${fmtDate(e.ts)}</span><span>${e.label}</span></div>
+      </div>
+    </div>`).join('') : '<div class="pmos-empty">No activity yet.</div>';
+  $('#pmos-activity-bg').classList.add('show');
+}
+$('#pmos-activity-btn').addEventListener('click', openActivityModal);
+$('#activity-close').addEventListener('click', ()=> $('#pmos-activity-bg').classList.remove('show'));
+
+/* ============================================================
+   Admin settings — Team tab
+   ============================================================ */
+function openAdminSettings(tab){
+  adminTab = tab || 'team';
+  $('#admin-tab-btn-team').classList.toggle('active', adminTab==='team');
+  $('#admin-tab-btn-services').classList.toggle('active', adminTab==='services');
+  $('#admin-tab-team').style.display = adminTab==='team' ? 'block' : 'none';
+  $('#admin-tab-services').style.display = adminTab==='services' ? 'block' : 'none';
+  renderAdminTeam();
+  renderAdminServices();
+  $('#pmos-admin-bg').classList.add('show');
+}
+function closeAdminSettings(){ $('#pmos-admin-bg').classList.remove('show'); }
+$('#pmos-admin-btn').addEventListener('click', ()=> openAdminSettings('team'));
+$('#admin-close').addEventListener('click', closeAdminSettings);
+$('#admin-tab-btn-team').addEventListener('click', ()=> openAdminSettings('team'));
+$('#admin-tab-btn-services').addEventListener('click', ()=> openAdminSettings('services'));
+
+function renderAdminTeam(){
+  const adminCount = users.filter(u=>u.role==='admin').length;
+  const rows = users.map(u=>{
+    const blockRemove = (u.id===currentUser.id) || (u.role==='admin' && adminCount<=1);
+    return `
+    <div class="pmos-admin-row">
+      ${avatarHTML(u.displayName,30)}
+      <div class="grow">
+        <div class="lbl">${escapeHtml(u.displayName)} <span class="pmos-role-badge ${u.role}">${u.role}</span></div>
+        <div class="sub">username: ${escapeHtml(u.username)}</div>
+      </div>
+      <button class="pmos-btn sm ghost-danger" data-remove-user="${u.id}" ${blockRemove?'disabled style="opacity:.4;cursor:not-allowed;"':''}>Remove</button>
+    </div>`;
+  }).join('');
+  $('#admin-tab-team').innerHTML = `
+    <div>${rows}</div>
+    <hr class="pmos-divider">
+    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Add a team member</div>
+    <div class="pmos-row2">
+      <div class="pmos-field"><label>Username</label><input id="u-username"></div>
+      <div class="pmos-field"><label>Display name</label><input id="u-display"></div>
+    </div>
+    <div class="pmos-row2">
+      <div class="pmos-field"><label>Password</label><input id="u-password" type="text"></div>
+      <div class="pmos-field"><label>Role</label><select id="u-role"><option value="staff">Staff</option><option value="admin">Admin</option></select></div>
+    </div>
+    <button class="pmos-btn primary" id="u-add">Add team member</button>
+    <div class="sub" style="margin-top:10px;">This board has no real backend — passwords are obscured before storage but this isn't bank-grade security. Don't reuse a sensitive password here.</div>
+  `;
+  $('#admin-tab-team').querySelectorAll('[data-remove-user]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(btn.disabled) return;
+      const u = users.find(x=>x.id===btn.dataset.removeUser);
+      if(!u) return;
+      if(!confirm(`Remove ${u.displayName} from the team?`)) return;
+      users = users.filter(x=>x.id!==u.id);
+      saveUsers(); refreshUserDatalist(); renderAdminTeam();
+    });
+  });
+  $('#u-add').addEventListener('click', ()=>{
+    const username = $('#u-username').value.trim();
+    const display = $('#u-display').value.trim();
+    const pw = $('#u-password').value;
+    const role = $('#u-role').value;
+    if(!username || !display || !pw){ alert('Username, display name, and password are all required.'); return; }
+    if(users.find(x=>x.username.toLowerCase()===username.toLowerCase())){ alert('That username is already taken.'); return; }
+    users.push({id:uid('u_'), username, passwordHash:hashPassword(pw), role, displayName:display});
+    saveUsers(); refreshUserDatalist(); renderAdminTeam();
+  });
+}
+
+/* ============================================================
+   Admin settings — Services tab
+   ============================================================ */
+function stageRowHTML(val){
+  return `<div class="pmos-dyn-row"><input class="svc-stage-input" placeholder="Stage name" value="${escapeHtml(val||'')}"><button type="button" class="pmos-row-x">&times;</button></div>`;
+}
+function tagRowHTML(name,sw,sla){
+  const opts = PALETTE.map(p=>`<option value="${p.name}" ${p.name===sw?'selected':''}>${p.name}</option>`).join('');
+  return `<div class="pmos-dyn-row tag-row">
+    <input class="svc-tag-name" placeholder="e.g. Hot" value="${escapeHtml(name||'')}">
+    <select class="svc-tag-swatch" style="flex:0 0 110px;">${opts}</select>
+    <input class="svc-tag-sla" type="number" min="1" value="${sla||3}" style="flex:0 0 60px;" title="SLA days">
+    <button type="button" class="pmos-row-x">&times;</button>
+  </div>`;
+}
+function wireDynRowRemovals(container){
+  container.querySelectorAll('.pmos-row-x').forEach(btn=>{
+    btn.addEventListener('click',()=> btn.closest('.pmos-dyn-row').remove());
+  });
+}
+function renderAdminServices(){
+  const rows = pipelines.map(p=>`
+    <div class="pmos-admin-row">
+      <span class="pmos-code-badge">${escapeHtml(p.code)}</span>
+      <div class="grow">
+        <div class="lbl">${escapeHtml(p.label)}</div>
+        <div class="sub">${p.stages.length} stages · ${tickets.filter(t=>t.pipeline===p.id).length} tickets</div>
+      </div>
+      <button class="pmos-btn sm ghost-danger" data-remove-pipe="${p.id}">Delete</button>
+    </div>`).join('');
+
+  $('#admin-tab-services').innerHTML = `
+    <div>${rows || '<div class="sub">No services yet.</div>'}</div>
+    <div style="margin:10px 0 18px;"><button class="pmos-btn sm" id="svc-restore">Restore default 4 services</button></div>
+    <hr class="pmos-divider">
+    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Add a new service</div>
+    <div class="pmos-row2">
+      <div class="pmos-field"><label>Service name</label><input id="svc-name" placeholder="e.g. Renovations"></div>
+      <div class="pmos-field" style="max-width:90px;"><label>Code</label><input id="svc-code" maxlength="3" placeholder="auto"></div>
+    </div>
+
+    <div class="pmos-field"><label>Stages (in order — the last stage marks a ticket complete)</label>
+      <div id="svc-stages" class="pmos-dyn-rows"></div>
+      <button type="button" class="pmos-btn sm" id="svc-add-stage">+ Add stage</button>
+    </div>
+
+    <div class="pmos-row2">
+      <div class="pmos-field"><label>Priority field label</label><input id="svc-tag-label" value="Priority"></div>
+    </div>
+    <div class="pmos-field"><label>Priority options &amp; their overdue SLA (days)</label>
+      <div id="svc-tags" class="pmos-dyn-rows"></div>
+      <button type="button" class="pmos-btn sm" id="svc-add-tag">+ Add priority option</button>
+    </div>
+
+    <div class="pmos-row2">
+      <div class="pmos-field"><label>Category field label</label><input id="svc-cat-label" value="Category"></div>
+      <div class="pmos-field"><label>Category options (comma separated)</label><input id="svc-cat-options" placeholder="e.g. Roofing, Painting, Landscaping"></div>
+    </div>
+
+    <div class="pmos-field"><label>Default checklist (one item per line)</label><textarea id="svc-checklist" placeholder="One checklist item per line"></textarea></div>
+
+    <div class="pmos-modal-actions">
+      <button class="pmos-btn primary" id="svc-create">Create service</button>
+    </div>
+  `;
+
+  const stagesEl = $('#svc-stages');
+  stagesEl.innerHTML = stageRowHTML('')+stageRowHTML('')+stageRowHTML('');
+  wireDynRowRemovals(stagesEl);
+  $('#svc-add-stage').addEventListener('click', ()=>{
+    stagesEl.insertAdjacentHTML('beforeend', stageRowHTML(''));
+    wireDynRowRemovals(stagesEl);
+  });
+
+  const tagsEl = $('#svc-tags');
+  tagsEl.innerHTML = tagRowHTML('Standard','Pine',5)+tagRowHTML('Rush','Amber',2);
+  wireDynRowRemovals(tagsEl);
+  $('#svc-add-tag').addEventListener('click', ()=>{
+    tagsEl.insertAdjacentHTML('beforeend', tagRowHTML('','Slate',5));
+    wireDynRowRemovals(tagsEl);
+  });
+
+  $('#admin-tab-services').querySelectorAll('[data-remove-pipe]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(pipelines.length<=1){ alert('You need at least one service.'); return; }
+      const p = pipelines.find(x=>x.id===btn.dataset.removePipe);
+      const ticketCount = tickets.filter(t=>t.pipeline===p.id).length;
+      if(!confirm(`Delete "${p.label}"? This will also delete ${ticketCount} ticket(s) in this service.`)) return;
+      pipelines = pipelines.filter(x=>x.id!==p.id);
+      tickets = tickets.filter(t=>t.pipeline!==p.id);
+      if(activePipelineId===p.id) activePipelineId = pipelines[0] ? pipelines[0].id : null;
+      savePipelines(); saveTickets(); renderAdminServices(); renderAll();
+    });
+  });
+
+  $('#svc-restore').addEventListener('click', ()=>{
+    let added = 0;
+    DEFAULT_PIPELINES.forEach(dp=>{
+      if(!pipelines.find(p=>p.id===dp.id)){ pipelines.push(JSON.parse(JSON.stringify(dp))); added++; }
+    });
+    if(added===0){ alert('All four default services are already present.'); return; }
+    if(!activePipelineId) activePipelineId = pipelines[0].id;
+    savePipelines(); renderAdminServices(); renderAll();
+  });
+
+  $('#svc-create').addEventListener('click', ()=>{
+    const name = $('#svc-name').value.trim();
+    if(!name){ $('#svc-name').focus(); return; }
+    const stages = Array.from(stagesEl.querySelectorAll('.svc-stage-input')).map(i=>i.value.trim()).filter(Boolean);
+    if(stages.length<2){ alert('Add at least 2 stages.'); return; }
+    const tagOptions = Array.from(tagsEl.querySelectorAll('.tag-row')).map(row=>({
+      name: row.querySelector('.svc-tag-name').value.trim(),
+      swatch: row.querySelector('.svc-tag-swatch').value,
+      slaDays: Math.max(1, parseInt(row.querySelector('.svc-tag-sla').value,10) || 5)
+    })).filter(o=>o.name);
+    const finalTagOptions = tagOptions.length ? tagOptions : [{name:'Standard',swatch:'Pine',slaDays:5}];
+    const catRaw = $('#svc-cat-options').value.trim();
+    const catOptions = catRaw ? catRaw.split(',').map(s=>s.trim()).filter(Boolean) : ['General'];
+    const checklistRaw = $('#svc-checklist').value.trim();
+    const defaultChecklist = checklistRaw ? checklistRaw.split('\n').map(s=>s.trim()).filter(Boolean) : [];
+
+    let code = $('#svc-code').value.trim().toUpperCase();
+    if(!code) code = nextCode();
+    if(pipelines.find(p=>p.code===code)) code = code+'2';
+
+    const newPipeline = {
+      id: slugify(name), label:name, code, stages,
+      tagField:{label: $('#svc-tag-label').value.trim()||'Priority', options:finalTagOptions},
+      categoryField:{label: $('#svc-cat-label').value.trim()||'Category', options:catOptions},
+      defaultChecklist,
+      createdBy: currentUser.displayName, createdAt: nowISO()
+    };
+    pipelines.push(newPipeline);
+    activePipelineId = newPipeline.id;
+    activeView = 'board';
+    savePipelines();
+    closeAdminSettings();
+    renderAll();
+  });
+}
+
+/* ============================================================
+   Render-all + boot
+   ============================================================ */
+function renderAll(keepDrawer){
+  renderUserPill();
+  renderTabs();
+  renderSubbar();
+  if(activeView==='board'){ $('#pmos-board').style.display='flex'; $('#pmos-history').style.display='none'; renderBoard(); }
+  else { $('#pmos-board').style.display='none'; $('#pmos-history').style.display='block'; renderHistory(); }
+  if(keepDrawer && openTicketId && tickets.find(t=>t.id===openTicketId)) openDrawer(openTicketId);
+  else if(keepDrawer && openTicketId) closeDrawer();
+}
+
+(async function init(){
+  pipelines = await loadShared('pmos-pipelines', ()=> JSON.parse(JSON.stringify(DEFAULT_PIPELINES)));
+  users = await loadShared('pmos-users', defaultUsers);
+  tickets = await loadShared('pmos-tickets', seedTickets);
+  if(pipelines.length) activePipelineId = pipelines[0].id;
+  refreshUserDatalist();
+
+  const session = await loadSession();
+  if(session && session.username){
+    const u = users.find(x=>x.username.toLowerCase()===session.username.toLowerCase());
+    if(u){ currentUser = u; showApp(); return; }
+  }
+  showLogin();
+})();
+
+})();
+</script>
