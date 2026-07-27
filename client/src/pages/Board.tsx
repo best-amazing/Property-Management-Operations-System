@@ -100,13 +100,30 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
 }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [noteText, setNoteText] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
+  const [title, setTitle] = useState("");
+  const [property, setProperty] = useState("");
+  const [unit, setUnit] = useState("");
+  const [assignedTo, setAssignedTo] = useState("");
+  const [tag, setTag] = useState("");
+  const [checklist, setChecklist] = useState<any[]>([]);
+  const [stageIndex, setStageIndex] = useState(0);
+  const [saving, setSaving] = useState(false);
   const user = JSON.parse(localStorage.getItem("pmos_user") || "null");
 
   useEffect(() => {
     if (ticket) {
+      setTitle(ticket.title);
+      setProperty(ticket.property ?? "");
+      setUnit(ticket.unit ?? "");
+      setAssignedTo(ticket.assigned_to ?? "");
+      setTag(ticket.tag ?? "");
+      setChecklist(ticket.checklist as any[]);
+      setStageIndex(ticket.stage_index);
       pmosApi.getNotes(ticket.id).then(setNotes).catch(() => {});
     } else {
-      setNotes([]);
+      setNotes([]); setTitle(""); setProperty(""); setUnit(""); setAssignedTo(""); setTag(""); setChecklist([]);
     }
   }, [ticket]);
 
@@ -117,11 +134,38 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
     setNoteText("");
   };
 
+  const saveNote = async (noteId: string) => {
+    if (!editingNoteText.trim()) return;
+    await pmosApi.request(`/client/notes/${noteId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ text: editingNoteText.trim() }),
+    });
+    setNotes(prev => prev.map(n => n.id === noteId ? { ...n, text: editingNoteText.trim() } : n));
+    setEditingNoteId(null);
+  };
+
   const deleteTicket = async () => {
     if (!ticket || !confirm("Delete this ticket?")) return;
     await pmosApi.deleteTicket(ticket.id);
     onDeleted(ticket.id);
     onClose();
+  };
+
+  const save = async () => {
+    if (!ticket) return;
+    setSaving(true);
+    try {
+      await pmosApi.updateTicket(ticket.id, { title, property, unit, assigned_to: assignedTo, tag, stage_index: stageIndex });
+      await pmosApi.updateChecklist(ticket.id, checklist);
+      onDeleted(ticket.id);
+      (window as any).__pmos_refresh?.();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleChecklist = (i: number) => {
+    setChecklist(prev => prev.map((item, idx) => idx === i ? { ...item, done: !item.done } : item));
   };
 
   const stages = pipeline?.stages as string[] | undefined;
@@ -132,42 +176,45 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
       <div className={`pmos-overlay ${ticket ? "show" : ""}`} onClick={onClose} />
       <div className={`pmos-drawer ${ticket ? "show" : ""}`}>
         <div className="pmos-drawer-head">
-          <div>
-            <h3>{ticket?.title ?? ""}</h3>
-            <div className="sub">{[ticket?.property, ticket?.unit].filter(Boolean).join(" · ")}</div>
-          </div>
           <button className="pmos-x" onClick={onClose}>×</button>
         </div>
 
         {ticket && pipeline && (
           <div className="pmos-drawer-body">
             <div className="pmos-field">
+              <label>Renter / Title</label>
+              <input value={title} onChange={e => setTitle(e.target.value)} />
+            </div>
+            <div className="pmos-row2">
+              <div className="pmos-field">
+                <label>Property</label>
+                <input value={property} onChange={e => setProperty(e.target.value)} />
+              </div>
+              <div className="pmos-field">
+                <label>Unit</label>
+                <input value={unit} onChange={e => setUnit(e.target.value)} />
+              </div>
+            </div>
+            <div className="pmos-field">
               <label>Stage</label>
-              <select
-                value={ticket.stage_index}
-                onChange={async e => {
-                  const updated = await pmosApi.updateTicket(ticket.id, { stage_index: Number(e.target.value) });
-                  // Reload tickets after stage change so board reflects new completed_at
-                  onDeleted(ticket.id);
-                  (window as any).__pmos_refresh?.();
-                }}
-              >
+              <select value={stageIndex} onChange={e => setStageIndex(Number(e.target.value))}>
                 {(stages ?? []).map((s, i) => <option key={i} value={i}>{s}</option>)}
               </select>
             </div>
             <div className="pmos-row2">
               <div className="pmos-field">
                 <label>Assigned to</label>
-                <input defaultValue={ticket.assigned_to ?? ""} list="dr-user-names" />
+                <input value={assignedTo} onChange={e => setAssignedTo(e.target.value)} list="dr-user-names" />
                 <datalist id="dr-user-names">
                   {users.map(u => <option key={u.id} value={u.display_name} />)}
                 </datalist>
               </div>
               <div className="pmos-field">
                 <label>{(pipeline.tag_field as any)?.label ?? "Tag"}</label>
-                <select defaultValue={ticket.tag ?? ""}>
+                <select value={tag} onChange={e => setTag(e.target.value)}>
+                  <option value="">—</option>
                   {((pipeline.tag_field as any)?.options ?? []).map((o: any) => (
-                    <option key={o.name}>{o.name}</option>
+                    <option key={o.name} value={o.name}>{o.name}</option>
                   ))}
                 </select>
               </div>
@@ -175,9 +222,11 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
             <div className="pmos-field">
               <label>Checklist</label>
               <div className="pmos-checklist">
-                {(ticket.checklist as any[]).map((item, i) => (
+                {checklist.length === 0 ? (
+                  <div className="pmos-note-empty">No checklist defined for this service.</div>
+                ) : checklist.map((item, i) => (
                   <label key={i}>
-                    <input type="checkbox" defaultChecked={item.done} /> {item.label}
+                    <input type="checkbox" checked={item.done} onChange={() => toggleChecklist(i)} /> {item.label}
                   </label>
                 ))}
               </div>
@@ -194,13 +243,30 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
                     <span className="author">{n.author}</span>
                     <span>{fmtDate(n.created_at)}</span>
                   </div>
-                  <div className="txt">{n.text}</div>
+                  {editingNoteId === n.id ? (
+                    <div className="pmos-note-form">
+                      <textarea
+                        value={editingNoteText}
+                        onChange={e => setEditingNoteText(e.target.value)}
+                        className="pmos-field"
+                        style={{ width: "100%", fontSize: 13, padding: "7px 9px", border: "1px solid var(--line)", borderRadius: 6 }}
+                      />
+                      <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                        <button className="pmos-btn primary sm" onClick={() => saveNote(n.id)}>Save</button>
+                        <button className="pmos-btn sm" onClick={() => setEditingNoteId(null)}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="txt">
+                      {n.text}
+                      <button className="pmos-btn sm" style={{ marginLeft: 8 }} onClick={() => { setEditingNoteId(n.id); setEditingNoteText(n.text); }}>Edit</button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
             <div className="pmos-note-form">
               <textarea
-                className="pmos-field"
                 placeholder="Add a note…"
                 value={noteText}
                 onChange={e => setNoteText(e.target.value)}
@@ -214,6 +280,7 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
         <div className="pmos-drawer-foot">
           <button className="pmos-btn ghost-danger" onClick={deleteTicket}>Delete ticket</button>
           <span className="mono" style={{ fontSize: 11, color: "var(--ink-soft)" }}>{age}d old</span>
+          <button className="pmos-btn primary" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</button>
         </div>
       </div>
     </>

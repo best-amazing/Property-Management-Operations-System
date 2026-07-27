@@ -42,6 +42,10 @@ export const AdminSettings: React.FC = () => {
   const [newPassword, setNewPassword] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
   const [newRole, setNewRole] = useState<"admin" | "staff">("staff");
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState<"admin" | "staff">("staff");
+  const [editPassword, setEditPassword] = useState("");
 
   // Services form state
   const [svcName, setSvcName] = useState("");
@@ -81,6 +85,21 @@ export const AdminSettings: React.FC = () => {
   const handleDeleteUser = async (id: string) => {
     if (!confirm("Remove this user?")) return;
     await pmosApi.deleteUser(id);
+    load();
+  };
+
+  const startEdit = (u: User) => {
+    setEditingUserId(u.id);
+    setEditName(u.display_name);
+    setEditRole(u.role);
+    setEditPassword("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingUserId) return;
+    await pmosApi.updateUser(editingUserId, { display_name: editName, role: editRole, ...(editPassword ? { password: editPassword } : {}) });
+    setEditingUserId(null);
+    toast.success("Team member updated");
     load();
   };
 
@@ -141,13 +160,25 @@ export const AdminSettings: React.FC = () => {
           <div>
             {users.map(u => {
               const sw = avatarSwatch(u.display_name);
+              const isEditing = editingUserId === u.id;
               return (
                 <div key={u.id} className="pmos-admin-row">
                   <span className="pmos-avatar" style={{ width: 30, height: 30, fontSize: 12, background: sw.color }}>{initials(u.display_name)}</span>
-                  <div className="grow">
-                    <div className="lbl">{u.display_name} <span className={`pmos-role-badge ${u.role}`}>{u.role}</span></div>
-                    <div className="sub">username: {u.username}</div>
-                  </div>
+                  {isEditing ? (
+                    <div className="grow" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                      <div className="pmos-field" style={{ margin: 0, flex: "1 1 140px" }}><input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Name" /></div>
+                      <div className="pmos-field" style={{ margin: 0, width: 100 }}><select value={editRole} onChange={e => setEditRole(e.target.value as any)}><option value="staff">Staff</option><option value="admin">Admin</option></select></div>
+                      <div className="pmos-field" style={{ margin: 0, flex: "1 1 120px" }}><input value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="New password (leave blank)" /></div>
+                      <button className="pmos-btn sm" onClick={saveEdit}>Save</button>
+                      <button className="pmos-btn sm" onClick={() => setEditingUserId(null)}>Cancel</button>
+                    </div>
+                  ) : (
+                    <div className="grow">
+                      <div className="lbl">{u.display_name} <span className={`pmos-role-badge ${u.role}`}>{u.role}</span></div>
+                      <div className="sub">username: {u.username}</div>
+                    </div>
+                  )}
+                  <button className="pmos-btn sm" onClick={() => startEdit(u)} style={{ marginRight: 6 }}>Edit</button>
                   <button className="pmos-btn sm ghost-danger" onClick={() => handleDeleteUser(u.id)}>Remove</button>
                 </div>
               );
