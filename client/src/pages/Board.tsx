@@ -529,7 +529,8 @@ export const Board: React.FC = () => {
           >History</button>
         </div>
         <div className="pmos-kpi">
-          <div className="stat"><b>{open}</b> open</div>
+          <div className="stat"><b>{open}</b> active</div>
+          <div className="stat"><b>{Math.round(open ? visibleTickets.reduce((sum, t) => sum + ageDays(t.stage_entered_at), 0) / open : 0)}d</b> avg age</div>
           <div className={`stat ${overdue > 0 ? "overdue" : ""}`}><b>{overdue}</b> overdue</div>
           <div className="stat"><b>{completedTickets.length}</b> done</div>
         </div>
