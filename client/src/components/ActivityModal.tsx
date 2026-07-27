@@ -3,11 +3,13 @@ import { ActivityItem } from "../types/pmos";
 
 interface Props {
   items: ActivityItem[];
+  setItems: (items: ActivityItem[]) => void;
   isOpen: boolean;
   onClose: () => void;
+  loading?: boolean;
 }
 
-export const ActivityModal: React.FC<Props> = ({ items, isOpen, onClose }) => {
+export const ActivityModal: React.FC<Props> = ({ items, setItems, isOpen, onClose, loading }) => {
   if (!isOpen) return null;
 
   return (
@@ -18,7 +20,11 @@ export const ActivityModal: React.FC<Props> = ({ items, isOpen, onClose }) => {
           <button onClick={onClose} className="text-gray-500 hover:text-black">Close</button>
         </div>
         <div className="space-y-4">
-          {items.map((item, i) => {
+          {loading ? (
+            <p className="text-gray-500">Loading activity…</p>
+          ) : items.length === 0 ? (
+            <p className="text-gray-500">No activity yet.</p>
+          ) : items.map((item, i) => {
             const isTransition = item.type === "stage_transition";
             return (
               <div key={isTransition ? `t-${(item as any).ticket_id}-${i}` : (item as any).id} className="border-b pb-2">
@@ -36,7 +42,12 @@ export const ActivityModal: React.FC<Props> = ({ items, isOpen, onClose }) => {
               </div>
             );
           })}
-          {items.length === 0 && <p className="text-gray-500">No activity yet.</p>}
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          {items.length > 0 && (
+            <button onClick={() => setItems([])} className="px-3 py-1 text-sm border rounded hover:bg-gray-100">Clear</button>
+          )}
+          <button onClick={onClose} className="px-3 py-1 text-sm bg-gray-800 text-white rounded hover:bg-gray-700">Close</button>
         </div>
       </div>
     </div>

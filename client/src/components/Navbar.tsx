@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { pmosApi } from "../services/pmosApi";
 import { ActivityModal } from "./ActivityModal";
@@ -7,6 +7,7 @@ import { ActivityItem } from "../types/pmos";
 export const Navbar: React.FC = () => {
   const [activityOpen, setActivityOpen] = useState(false);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
@@ -15,10 +16,13 @@ export const Navbar: React.FC = () => {
 
   const openActivity = async () => {
     try {
+      setActivityLoading(true);
       const items = await pmosApi.getActivity();
       setActivityItems(items);
       setActivityOpen(true);
-    } catch { }
+    } catch { } finally {
+      setActivityLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -40,7 +44,7 @@ export const Navbar: React.FC = () => {
           <button onClick={handleLogout} className="hover:text-gray-300">Logout</button>
         </div>
       </nav>
-      <ActivityModal items={activityItems} isOpen={activityOpen} onClose={() => setActivityOpen(false)} />
+      <ActivityModal items={activityItems} setItems={setActivityItems} isOpen={activityOpen} loading={activityLoading} onClose={() => setActivityOpen(false)} />
     </>
   );
 };

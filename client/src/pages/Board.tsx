@@ -221,10 +221,12 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
 /* ── Activity modal (notes + stage transitions) ── */
 function ActivityModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      pmosApi.getActivity().then(setActivity).catch(() => {});
+      setLoading(true);
+      pmosApi.getActivity().then(setActivity).catch(() => {}).finally(() => setLoading(false));
     }
   }, [isOpen]);
 
@@ -233,8 +235,11 @@ function ActivityModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
       <div className="pmos-modal wide" onClick={e => e.stopPropagation()}>
         <h3>Recent activity</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 0, maxHeight: "60vh", overflowY: "auto" }}>
-          {activity.length === 0 && <div className="pmos-note-empty">No activity yet.</div>}
-          {activity.map((item, i) => {
+          {loading ? (
+            <div className="pmos-note-empty" style={{ textAlign: "center", padding: 24 }}>Loading activity…</div>
+          ) : activity.length === 0 ? (
+            <div className="pmos-note-empty">No activity yet.</div>
+          ) : activity.map((item, i) => {
             const isTransition = "type" in item && item.type === "stage_transition";
             const key = isTransition ? `t-${(item as any).ticket_id}-${i}` : (item as NoteActivity).id;
             const ticketTitle = (item as any).ticket_title || "";
@@ -260,6 +265,7 @@ function ActivityModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
           })}
         </div>
         <div className="pmos-modal-actions">
+          <button className="pmos-btn" onClick={() => setActivity([])}>Clear</button>
           <button className="pmos-btn" onClick={onClose}>Close</button>
         </div>
       </div>
