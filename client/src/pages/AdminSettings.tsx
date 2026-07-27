@@ -74,7 +74,7 @@ export const AdminSettings: React.FC = () => {
     e.preventDefault();
     await pmosApi.createUser({ username: newUsername, password: newPassword, display_name: newDisplayName, role: newRole });
     setNewUsername(""); setNewPassword(""); setNewDisplayName("");
-    toast.success(`${newDisplayName} created`);
+    toast.success("Team member created");
     load();
   };
 
@@ -112,7 +112,7 @@ export const AdminSettings: React.FC = () => {
       category_field: { label: svcCatLabel.trim() || "Category", options: catOptions.length ? catOptions : ["General"] },
       default_checklist: defaultChecklist,
     });
-    toast.success(`Service "${svcName.trim()}" created`);
+    toast.success("Service created");
     setSvcName(""); setSvcCode(""); setSvcStages(["", "", ""]); setSvcTagLabel("Priority");
     setSvcTags([{ name: "Standard", swatch: "Pine", sla: 5 }, { name: "Rush", swatch: "Amber", sla: 2 }]);
     setSvcCatLabel("Category"); setSvcCatOptions(""); setSvcChecklist("");
