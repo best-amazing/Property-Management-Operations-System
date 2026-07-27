@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { pmosApi } from "../services/pmosApi";
 import { Pipeline, Ticket, User, Note, NoteActivity, ActivityItem } from "../types/pmos";
 import { avatarSwatch, initials, ageDays, fmtDate } from "../utils/ui";
+import { usePipelines, useTickets, useUsers, QUERY_KEYS } from "../hooks/useApi";
 
 /* ── helpers ── */
 function Avatar({ name, size = 22 }: { name: string; size?: number }) {
@@ -364,27 +366,25 @@ function NewTicketModal({ pipeline, stageIndex = 0, users, onClose, onCreated }:
 ═══════════════════════════════════ */
 export const Board: React.FC = () => {
   const navigate = useNavigate();
-  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const qc = useQueryClient();
   const [activePipelineId, setActivePipelineId] = useState<string | null>(null);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [activeView, setActiveView] = useState<"board" | "history">("board");
   const [filterMine, setFilterMine] = useState(false);
   const [openTicket, setOpenTicket] = useState<Ticket | null>(null);
   const [showActivity, setShowActivity] = useState(false);
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [newTicketStage, setNewTicketStage] = useState(0);
-  const [ticketsLoading, setTicketsLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [users, setUsers] = useState<User[]>([]);
+
+  const { data: pipelines = [] } = usePipelines();
+  const { data: tickets = [], isLoading: ticketsLoading } = useTickets(activePipelineId, filterMine);
+  const { data: users = [] } = useUsers();
 
   const activePipeline = pipelines.find(p => p.id === activePipelineId) ?? null;
 
   const refreshTickets = useCallback(() => {
-    if (activePipelineId) {
-      setTicketsLoading(true);
-      pmosApi.getTickets(activePipelineId, filterMine).then(setTickets).catch(() => {}).finally(() => setTicketsLoading(false));
-    }
-  }, [activePipelineId, filterMine]);
+    if (activePipelineId) qc.invalidateQueries({ queryKey: QUERY_KEYS.tickets(activePipelineId, filterMine) });
+  }, [activePipelineId, filterMine, qc]);
 
   // Expose refresh globally so TicketDrawer can trigger it
   useEffect(() => {
@@ -404,25 +404,23 @@ export const Board: React.FC = () => {
   }, [navigate]);
 
   useEffect(() => {
-    pmosApi.getPipelines().then(data => {
-      setPipelines(data);
-      if (data.length > 0) setActivePipelineId(data[0].id);
-    }).catch(() => navigate("/login"));
-    pmosApi.getUsers().then(setUsers).catch(() => {});
-  }, [navigate]);
+    if (pipelines.length > 0 && !activePipelineId) setActivePipelineId(pipelines[0].id);
+  }, [pipelines, activePipelineId]);
 
-  useEffect(() => {
-    refreshTickets();
-  }, [refreshTickets]);
+  const getTicketsKey = () => activePipelineId ? QUERY_KEYS.tickets(activePipelineId, filterMine) : [];
+
+  const handleTicketDeleted = (id: string) => {
+    qc.setQueryData<Ticket[]>(getTicketsKey(), prev => prev?.filter(t => t.id !== id) ?? []);
+  };
+  const handleTicketCreated = (t: Ticket) => {
+    qc.setQueryData<Ticket[]>(getTicketsKey(), prev => prev ? [...prev, t] : [t]);
+  };
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("pmos_user");
     navigate("/login");
   };
-
-  const handleTicketDeleted = (id: string) => setTickets(prev => prev.filter(t => t.id !== id));
-  const handleTicketCreated = (t: Ticket) => setTickets(prev => [...prev, t]);
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination || !activePipeline) return;
@@ -435,8 +433,8 @@ export const Board: React.FC = () => {
     if (destStage < 0 || destStage >= stages.length) return;
 
     // Optimistic update
-    setTickets(prev =>
-      prev.map(t => t.id === ticketId ? { ...t, stage_index: destStage } : t)
+    qc.setQueryData<Ticket[]>(getTicketsKey(), prev =>
+      prev?.map(t => t.id === ticketId ? { ...t, stage_index: destStage } : t) ?? []
     );
 
     try {
