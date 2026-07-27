@@ -587,7 +587,7 @@ export const Board: React.FC = () => {
                   <tr><td colSpan={5} style={{ textAlign: "center", color: "var(--ink-soft)", fontStyle: "italic" }}>No completed tickets.</td></tr>
                 ) : (
                   completedTickets.map(t => (
-                    <tr key={t.id}>
+                    <tr key={t.id} onClick={() => setOpenTicket(t)} style={{ cursor: "pointer" }}>
                       <td>{t.title}</td>
                       <td>{[t.property, t.unit].filter(Boolean).join(" · ")}</td>
                       <td>{t.tag ?? "—"}</td>
