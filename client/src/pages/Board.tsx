@@ -156,9 +156,13 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
     setSaving(true);
     try {
       await pmosApi.updateTicket(ticket.id, { title, property, unit, assigned_to: assignedTo, tag, stage_index: stageIndex });
-      await pmosApi.updateChecklist(ticket.id, checklist);
-      onDeleted(ticket.id);
+      if (checklist.length > 0) {
+        await pmosApi.updateChecklist(ticket.id, checklist);
+      }
       (window as any).__pmos_refresh?.();
+      onClose();
+    } catch (e: any) {
+      alert("Save failed: " + (e.message || "Unknown error"));
     } finally {
       setSaving(false);
     }

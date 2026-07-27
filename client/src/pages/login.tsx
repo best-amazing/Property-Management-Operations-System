@@ -40,10 +40,10 @@ export const Login: React.FC = () => {
 
         <form onSubmit={handleLogin}>
           <div className="pmos-field">
-            <label>Username</label>
+            <label>Email</label>
             <input
               id="pmos-username"
-              autoComplete="username"
+              autoComplete="email"
               value={username}
               onChange={e => setUsername(e.target.value)}
               onKeyDown={e => handleKeyDown(e, "pmos-password")}

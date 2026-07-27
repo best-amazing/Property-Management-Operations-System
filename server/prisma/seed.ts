@@ -1,29 +1,28 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-import crypto from "crypto";
-
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Starting PMOS seed...");
 
   // ── 1. Users ──────────────────────────────────────────────
-  const adminPassword = crypto.randomBytes(4).toString("hex"); // 8-char hex string
+  const adminPassword = "TeamA@2026";
   const usersData = [
-    { username: "admin",  display_name: "Alex Rivera", password: adminPassword,  role: "admin" },
+    { username: "amazingpropertiesusa1@gmail.com",  display_name: "admin", password: adminPassword,  role: "admin" },
     { username: "priya",  display_name: "Priya Shah",  password: "priya123",  role: "staff" },
     { username: "jordan", display_name: "Jordan Lee",  password: "jordan123", role: "staff" },
   ];
 
   for (const u of usersData) {
+    const hash = await bcrypt.hash(u.password, 10);
     await prisma.user.upsert({
       where: { username: u.username },
-      update: { password_hash: await bcrypt.hash(u.password, 10) },
+      update: { display_name: u.display_name, role: u.role, password_hash: hash },
       create: {
         username: u.username,
         display_name: u.display_name,
-        password_hash: await bcrypt.hash(u.password, 10),
+        password_hash: hash,
         role: u.role,
       },
     });
@@ -171,7 +170,7 @@ async function main() {
 
   console.log("\n✅ Seed complete!");
   console.log("\nAdmin password:", adminPassword);
-  console.log("  (staff passwords unchanged: priya123, jordan123)");
+  console.log("  staff passwords: priya123, jordan123");
 }
 
 main()
