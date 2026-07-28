@@ -29,7 +29,6 @@ export function useUsers() {
   return useQuery({
     queryKey: QUERY_KEYS.users,
     queryFn: pmosApi.getUsers,
-    staleTime: 5 * 60 * 1000,
   });
 }
 

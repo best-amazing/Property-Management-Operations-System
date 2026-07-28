@@ -68,5 +68,8 @@ export const ticketService = {
   },
   updateChecklist: (id: string, checklist: any) =>
     prisma.ticket.update({ where: { id }, data: { checklist } }),
-  delete: (id: string) => prisma.ticket.delete({ where: { id } }),
+  delete: async (id: string) => {
+    await prisma.note.deleteMany({ where: { ticket_id: id } });
+    return prisma.ticket.delete({ where: { id } });
+  },
 };
