@@ -208,10 +208,10 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
             <div className="pmos-row2">
               <div className="pmos-field">
                 <label>Assigned to</label>
-                <input value={assignedTo} onChange={e => setAssignedTo(e.target.value)} list="dr-user-names" />
-                <datalist id="dr-user-names">
-                  {users.map(u => <option key={u.id} value={u.display_name} />)}
-                </datalist>
+                <select value={assignedTo} onChange={e => setAssignedTo(e.target.value)}>
+                  <option value="">—</option>
+                  {users.map(u => <option key={u.id} value={u.display_name}>{u.display_name}</option>)}
+                </select>
               </div>
               <div className="pmos-field">
                 <label>{(pipeline.tag_field as any)?.label ?? "Tag"}</label>
@@ -408,16 +408,10 @@ function NewTicketModal({ pipeline, stageIndex = 0, users, onClose, onCreated }:
         </div>
         <div className="pmos-field">
           <label>Assigned To</label>
-          <input
-            id="n-assigned"
-            list="pmos-user-names"
-            placeholder="Asset Manager / PM / Vendor name"
-            value={assignedTo}
-            onChange={e => setAssignedTo(e.target.value)}
-          />
-          <datalist id="pmos-user-names">
-            {users.map(u => <option key={u.id} value={u.display_name} />)}
-          </datalist>
+          <select value={assignedTo} onChange={e => setAssignedTo(e.target.value)}>
+            <option value="">—</option>
+            {users.map(u => <option key={u.id} value={u.display_name}>{u.display_name}</option>)}
+          </select>
         </div>
         <div className="pmos-field">
           <label>Starting stage</label>
