@@ -60,6 +60,17 @@ export const AdminSettings: React.FC = () => {
   const [svcCatOptions, setSvcCatOptions] = useState("");
   const [svcChecklist, setSvcChecklist] = useState("");
 
+  // Edit service state
+  const [editingPipelineId, setEditingPipelineId] = useState<string | null>(null);
+  const [editSvcName, setEditSvcName] = useState("");
+  const [editSvcCode, setEditSvcCode] = useState("");
+  const [editSvcStages, setEditSvcStages] = useState<string[]>([]);
+  const [editSvcTagLabel, setEditSvcTagLabel] = useState("Priority");
+  const [editSvcTags, setEditSvcTags] = useState<{ name: string; swatch: string; sla: number }[]>([]);
+  const [editSvcCatLabel, setEditSvcCatLabel] = useState("Category");
+  const [editSvcCatOptions, setEditSvcCatOptions] = useState("");
+  const [editSvcChecklist, setEditSvcChecklist] = useState("");
+
   const load = () => {
     pmosApi.getUsers().then(setUsers).catch(() => navigate("/login"));
     pmosApi.getPipelines().then(setPipelines).catch(() => {});
@@ -147,6 +158,53 @@ export const AdminSettings: React.FC = () => {
     load();
   };
 
+  // Edit pipeline handlers
+  const addEditStage = () => setEditSvcStages(prev => [...prev, ""]);
+  const removeEditStage = (i: number) => setEditSvcStages(prev => prev.filter((_, idx) => idx !== i));
+  const updateEditStage = (i: number, val: string) => setEditSvcStages(prev => prev.map((s, idx) => idx === i ? val : s));
+
+  const addEditTag = () => setEditSvcTags(prev => [...prev, { name: "", swatch: "Slate", sla: 5 }]);
+  const removeEditTag = (i: number) => setEditSvcTags(prev => prev.filter((_, idx) => idx !== i));
+  const updateEditTag = (i: number, d: { name?: string; swatch?: string; sla?: number }) =>
+    setEditSvcTags(prev => prev.map((t, idx) => idx === i ? { ...t, ...d } : t));
+
+  const startEditPipeline = (p: Pipeline) => {
+    setEditingPipelineId(p.id);
+    setEditSvcName(p.label);
+    setEditSvcCode(p.code);
+    setEditSvcStages(p.stages as string[]);
+    setEditSvcTagLabel((p.tag_field as any)?.label ?? "Priority");
+    setEditSvcTags(((p.tag_field as any)?.options ?? []).map((o: any) => ({
+      name: o.name, swatch: o.swatch ?? "Slate", sla: o.slaDays ?? 5,
+    })));
+    setEditSvcCatLabel((p.category_field as any)?.label ?? "Category");
+    setEditSvcCatOptions(((p.category_field as any)?.options ?? []).join(", "));
+    setEditSvcChecklist((p.default_checklist ?? []).join("\n"));
+  };
+
+  const handleUpdatePipeline = async () => {
+    if (!editingPipelineId) return;
+    const stages = editSvcStages.map(s => s.trim()).filter(Boolean);
+    if (!editSvcName.trim()) { toast.error("Service name is required."); return; }
+    if (stages.length < 2) { toast.error("Add at least 2 stages."); return; }
+    const tagOptions = editSvcTags.filter(t => t.name.trim()).map(t => ({ name: t.name.trim(), swatch: t.swatch, slaDays: t.sla }));
+    const finalTagOptions = tagOptions.length ? tagOptions : [{ name: "Standard", swatch: "Pine", slaDays: 5 }];
+    const catOptions = editSvcCatOptions.split(",").map(s => s.trim()).filter(Boolean);
+    const defaultChecklist = editSvcChecklist.split("\n").map(s => s.trim()).filter(Boolean);
+
+    await pmosApi.updatePipeline(editingPipelineId, {
+      label: editSvcName.trim(),
+      code: editSvcCode.trim().toUpperCase(),
+      stages,
+      tag_field: { label: editSvcTagLabel.trim() || "Priority", options: finalTagOptions },
+      category_field: { label: editSvcCatLabel.trim() || "Category", options: catOptions.length ? catOptions : ["General"] },
+      default_checklist: defaultChecklist,
+    });
+    setEditingPipelineId(null);
+    toast.success("Service updated");
+    load();
+  };
+
   return (
     <div className="pmos-modal-bg show" style={{ position: "fixed", inset: 0, zIndex: 50 }}>
       <div className="pmos-modal wide" onClick={e => e.stopPropagation()} style={{ maxHeight: "90vh", overflowY: "auto" }}>
@@ -201,16 +259,64 @@ export const AdminSettings: React.FC = () => {
 
         {activeTab === "services" && (
           <div>
-            {pipelines.map(p => (
-              <div key={p.id} className="pmos-admin-row">
-                <span className="pmos-code-badge">{p.code}</span>
-                <div className="grow">
-                  <div className="lbl">{p.label}</div>
-                  <div className="sub">{(p.stages as string[]).length} stages</div>
+            {pipelines.map(p => {
+              const isEditing = editingPipelineId === p.id;
+              return (
+                <div key={p.id} className="pmos-admin-row" style={{ flexWrap: "wrap" }}>
+                  {isEditing ? (
+                    <div className="grow" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div className="pmos-row2">
+                        <div className="pmos-field" style={{ margin: 0 }}><label>Service name</label><input value={editSvcName} onChange={e => setEditSvcName(e.target.value)} /></div>
+                        <div className="pmos-field" style={{ margin: 0, maxWidth: 90 }}><label>Code</label><input maxLength={3} value={editSvcCode} onChange={e => setEditSvcCode(e.target.value)} /></div>
+                      </div>
+                      <div className="pmos-field" style={{ margin: 0 }}>
+                        <label>Stages</label>
+                        <div className="pmos-dyn-rows">
+                          {editSvcStages.map((s, i) => (
+                            <div key={i} className="pmos-dyn-row">
+                              <input className="svc-stage-input" placeholder="Stage name" value={s} onChange={e => updateEditStage(i, e.target.value)} />
+                              <button type="button" className="pmos-row-x" onClick={() => removeEditStage(i)}>&times;</button>
+                            </div>
+                          ))}
+                        </div>
+                        <button type="button" className="pmos-btn sm" onClick={addEditStage}>+ Add stage</button>
+                      </div>
+                      <div className="pmos-row2">
+                        <div className="pmos-field" style={{ margin: 0 }}><label>Priority label</label><input value={editSvcTagLabel} onChange={e => setEditSvcTagLabel(e.target.value)} /></div>
+                      </div>
+                      <div className="pmos-field" style={{ margin: 0 }}>
+                        <label>Priority options &amp; SLA (days)</label>
+                        <div className="pmos-dyn-rows">
+                          {editSvcTags.map((t, i) => (
+                            <TagRow key={i} name={t.name} swatch={t.swatch} sla={t.sla} onChange={d => updateEditTag(i, d)} onRemove={() => removeEditTag(i)} />
+                          ))}
+                        </div>
+                        <button type="button" className="pmos-btn sm" onClick={addEditTag}>+ Add priority option</button>
+                      </div>
+                      <div className="pmos-row2">
+                        <div className="pmos-field" style={{ margin: 0 }}><label>Category label</label><input value={editSvcCatLabel} onChange={e => setEditSvcCatLabel(e.target.value)} /></div>
+                        <div className="pmos-field" style={{ margin: 0 }}><label>Category options (comma separated)</label><input value={editSvcCatOptions} onChange={e => setEditSvcCatOptions(e.target.value)} /></div>
+                      </div>
+                      <div className="pmos-field" style={{ margin: 0 }}><label>Default checklist (one per line)</label><textarea value={editSvcChecklist} onChange={e => setEditSvcChecklist(e.target.value)} /></div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button className="pmos-btn primary sm" onClick={handleUpdatePipeline}>Save</button>
+                        <button className="pmos-btn sm" onClick={() => setEditingPipelineId(null)}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="pmos-code-badge">{p.code}</span>
+                      <div className="grow">
+                        <div className="lbl">{p.label}</div>
+                        <div className="sub">{(p.stages as string[]).length} stages</div>
+                      </div>
+                      <button className="pmos-btn sm" onClick={() => startEditPipeline(p)} style={{ marginRight: 6 }}>Edit</button>
+                      <button className="pmos-btn sm ghost-danger" onClick={() => handleDeletePipeline(p.id)}>Delete</button>
+                    </>
+                  )}
                 </div>
-                <button className="pmos-btn sm ghost-danger" onClick={() => handleDeletePipeline(p.id)}>Delete</button>
-              </div>
-            ))}
+              );
+            })}
             <hr className="pmos-divider" />
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Add a new service</div>
             <div className="pmos-row2">

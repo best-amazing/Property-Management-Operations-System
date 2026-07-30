@@ -109,6 +109,7 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
   const [tag, setTag] = useState("");
   const [checklist, setChecklist] = useState<any[]>([]);
   const [stageIndex, setStageIndex] = useState(0);
+  const [completedAt, setCompletedAt] = useState<string | null | undefined>(null);
   const [saving, setSaving] = useState(false);
   const user = JSON.parse(localStorage.getItem("pmos_user") || "null");
 
@@ -121,9 +122,10 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
       setTag(ticket.tag ?? "");
       setChecklist(ticket.checklist as any[]);
       setStageIndex(ticket.stage_index);
+      setCompletedAt(ticket.completed_at);
       pmosApi.getNotes(ticket.id).then(setNotes).catch(() => {});
     } else {
-      setNotes([]); setTitle(""); setProperty(""); setUnit(""); setAssignedTo(""); setTag(""); setChecklist([]);
+      setNotes([]); setTitle(""); setProperty(""); setUnit(""); setAssignedTo(""); setTag(""); setChecklist([]); setCompletedAt(null);
     }
   }, [ticket]);
 
@@ -142,6 +144,12 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
     });
     setNotes(prev => prev.map(n => n.id === noteId ? { ...n, text: editingNoteText.trim() } : n));
     setEditingNoteId(null);
+  };
+
+  const deleteNote = async (noteId: string) => {
+    if (!confirm("Delete this note?")) return;
+    await pmosApi.deleteNote(noteId);
+    setNotes(prev => prev.filter(n => n.id !== noteId));
   };
 
   const deleteTicket = async () => {
@@ -170,6 +178,24 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
 
   const toggleChecklist = (i: number) => {
     setChecklist(prev => prev.map((item, idx) => idx === i ? { ...item, done: !item.done } : item));
+  };
+
+  const markComplete = async () => {
+    if (!ticket || !pipeline) return;
+    const stages = pipeline.stages as string[];
+    const lastIndex = stages.length - 1;
+    const updated = await pmosApi.updateTicket(ticket.id, { stage_index: lastIndex });
+    setCompletedAt(updated.completed_at);
+    setStageIndex(lastIndex);
+    (window as any).__pmos_refresh?.();
+  };
+
+  const reopen = async () => {
+    if (!ticket) return;
+    const updated = await pmosApi.updateTicket(ticket.id, { stage_index: 0 });
+    setCompletedAt(updated.completed_at);
+    setStageIndex(0);
+    (window as any).__pmos_refresh?.();
   };
 
   const stages = pipeline?.stages as string[] | undefined;
@@ -204,6 +230,19 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
               <select value={stageIndex} onChange={e => setStageIndex(Number(e.target.value))}>
                 {(stages ?? []).map((s, i) => <option key={i} value={i}>{s}</option>)}
               </select>
+            </div>
+            <div className="pmos-field" style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              {completedAt ? (
+                <>
+                  <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>Completed {fmtDate(completedAt)}</span>
+                  <button className="pmos-btn sm" onClick={reopen}>Reopen</button>
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>In progress</span>
+                  <button className="pmos-btn primary sm" onClick={markComplete}>Mark complete</button>
+                </>
+              )}
             </div>
             <div className="pmos-row2">
               <div className="pmos-field">
@@ -264,6 +303,7 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
                     <div className="txt">
                       {n.text}
                       <button className="pmos-btn sm" style={{ marginLeft: 8 }} onClick={() => { setEditingNoteId(n.id); setEditingNoteText(n.text); }}>Edit</button>
+                      <button className="pmos-btn sm" style={{ marginLeft: 4 }} onClick={() => deleteNote(n.id)}>Delete</button>
                     </div>
                   )}
                 </div>

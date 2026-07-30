@@ -111,6 +111,7 @@ export interface UpdateTicketRequest {
   category?: string;
   assigned_to?: string;
   stage_index?: number;
+  completed_at?: string | null;
 }
 
 export interface CreateNoteRequest {
