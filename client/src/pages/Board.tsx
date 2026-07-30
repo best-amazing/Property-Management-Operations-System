@@ -59,7 +59,7 @@ function TicketCard({ ticket, pipeline, index, onOpen }: {
                 <span className="nm">{ticket.assigned_to}</span>
               </div>
             ) : <span />}
-            <div className="cright" style={{ gap: 6 }}>
+            <div className="cright" style={{ display: "flex", gap: 6 }}>
               {dueOverdue ? (
                 <span className="age mono flag">Past due</span>
               ) : dueDays !== null ? (
