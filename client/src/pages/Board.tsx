@@ -514,6 +514,22 @@ export const Board: React.FC = () => {
       setPipelineCounts(prev => ({ ...prev, [activePipelineId]: tickets.length }));
     }
   }, [activePipelineId, tickets.length]);
+
+  // Pre-fetch ticket counts for all pipelines on mount so tab badges populate
+  useEffect(() => {
+    if (pipelines.length > 0) {
+      pipelines.forEach(p => {
+        qc.prefetchQuery({
+          queryKey: QUERY_KEYS.tickets(p.id, false),
+          queryFn: () => pmosApi.getTickets(p.id, false),
+          staleTime: 30 * 1000,
+        }).then(() => {
+          const data = qc.getQueryData<Ticket[]>(QUERY_KEYS.tickets(p.id, false));
+          if (data) setPipelineCounts(prev => ({ ...prev, [p.id]: data.length }));
+        }).catch(() => {});
+      });
+    }
+  }, [pipelines, qc]);
   const { data: users = [] } = useUsers();
 
   const activePipeline = pipelines.find(p => p.id === activePipelineId) ?? null;
