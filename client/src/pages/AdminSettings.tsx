@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { pmosApi } from "../services/pmosApi";
 import { User, Pipeline } from "../types/pmos";
 import { avatarSwatch, initials } from "../utils/ui";
+import { usePipelines, useUsers, QUERY_KEYS } from "../hooks/useApi";
 
 const PALETTE = [
   { name: "Rust", color: "#B23A2E", soft: "#F6DEDA" },
@@ -33,8 +35,9 @@ function TagRow({ name, swatch, sla, onChange, onRemove }: {
 
 export const AdminSettings: React.FC = () => {
   const navigate = useNavigate();
-  const [users, setUsers] = useState<User[]>([]);
-  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const qc = useQueryClient();
+  const { data: users = [], isLoading: usersLoading, isError: usersError } = useUsers();
+  const { data: pipelines = [], isLoading: pipelinesLoading } = usePipelines();
   const [activeTab, setActiveTab] = useState<"team" | "services">("team");
 
   // Team form state
@@ -71,12 +74,9 @@ export const AdminSettings: React.FC = () => {
   const [editSvcCatOptions, setEditSvcCatOptions] = useState("");
   const [editSvcChecklist, setEditSvcChecklist] = useState("");
 
-  const load = () => {
-    pmosApi.getUsers().then(setUsers).catch(() => navigate("/login"));
-    pmosApi.getPipelines().then(setPipelines).catch(() => {});
-  };
-
-  useEffect(load, [navigate]);
+  useEffect(() => {
+    if (usersError) navigate("/login");
+  }, [usersError, navigate]);
 
   const token = localStorage.getItem("token");
   if (!token) { navigate("/login"); return null; }
@@ -90,13 +90,13 @@ export const AdminSettings: React.FC = () => {
     await pmosApi.createUser({ username: newUsername, password: newPassword, display_name: newDisplayName, role: newRole });
     setNewUsername(""); setNewPassword(""); setNewDisplayName("");
     toast.success("Team member created");
-    load();
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
   };
 
   const handleDeleteUser = async (id: string) => {
     if (!confirm("Remove this user?")) return;
     await pmosApi.deleteUser(id);
-    load();
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
   };
 
   const startEdit = (u: User) => {
@@ -111,7 +111,7 @@ export const AdminSettings: React.FC = () => {
     await pmosApi.updateUser(editingUserId, { display_name: editName, role: editRole, ...(editPassword ? { password: editPassword } : {}) });
     setEditingUserId(null);
     toast.success("Team member updated");
-    load();
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
   };
 
   // Services
@@ -146,7 +146,7 @@ export const AdminSettings: React.FC = () => {
     setSvcName(""); setSvcCode(""); setSvcStages(["", "", ""]); setSvcTagLabel("Priority");
     setSvcTags([{ name: "Standard", swatch: "Pine", sla: 5 }, { name: "Rush", swatch: "Amber", sla: 2 }]);
     setSvcCatLabel("Category"); setSvcCatOptions(""); setSvcChecklist("");
-    load();
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.pipelines });
   };
 
   const handleDeletePipeline = async (id: string) => {
@@ -155,7 +155,7 @@ export const AdminSettings: React.FC = () => {
     const count = 0; // We don't have ticket count easily here
     if (!confirm(`Delete "${p.label}"? This will also delete all tickets in this service.`)) return;
     await pmosApi.deletePipeline(id);
-    load();
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.pipelines });
   };
 
   // Edit pipeline handlers
@@ -202,7 +202,7 @@ export const AdminSettings: React.FC = () => {
     });
     setEditingPipelineId(null);
     toast.success("Service updated");
-    load();
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.pipelines });
   };
 
   return (
@@ -216,7 +216,9 @@ export const AdminSettings: React.FC = () => {
 
         {activeTab === "team" && (
           <div>
-            {users.map(u => {
+            {usersLoading ? (
+              <div className="pmos-note-empty" style={{ textAlign: "center", padding: 24 }}>Loading team members…</div>
+            ) : users.map(u => {
               const sw = avatarSwatch(u.display_name);
               const isEditing = editingUserId === u.id;
               return (
@@ -259,7 +261,9 @@ export const AdminSettings: React.FC = () => {
 
         {activeTab === "services" && (
           <div>
-            {pipelines.map(p => {
+            {pipelinesLoading ? (
+              <div className="pmos-note-empty" style={{ textAlign: "center", padding: 24 }}>Loading services…</div>
+            ) : pipelines.map(p => {
               const isEditing = editingPipelineId === p.id;
               return (
                 <div key={p.id} className="pmos-admin-row" style={{ flexWrap: "wrap" }}>
