@@ -30,6 +30,10 @@ function TicketCard({ ticket, pipeline, index, onOpen }: {
   const slaDays = tagOpt?.slaDays ?? 7;
   const overdue = ticket.stage_index < (pipeline.stages as string[]).length - 1 && age >= slaDays;
 
+  const dueMs = ticket.due_date ? new Date(ticket.due_date).getTime() : null;
+  const dueDays = dueMs !== null ? Math.floor((dueMs - Date.now()) / 86400000) : null;
+  const dueOverdue = dueDays !== null && dueDays < 0;
+
   return (
     <Draggable draggableId={ticket.id} index={index}>
       {(provided, snapshot) => (
@@ -55,7 +59,14 @@ function TicketCard({ ticket, pipeline, index, onOpen }: {
                 <span className="nm">{ticket.assigned_to}</span>
               </div>
             ) : <span />}
-            <span className={`age mono ${overdue ? "flag" : ""}`}>{age}d</span>
+            <div className="cright">
+              {dueOverdue ? (
+                <span className="age mono flag">Past due</span>
+              ) : dueDays !== null ? (
+                <span className="age mono">{dueDays}d left</span>
+              ) : null}
+              <span className={`age mono ${overdue ? "flag" : ""}`}>{age}d</span>
+            </div>
           </div>
         </div>
       )}
@@ -110,6 +121,7 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
   const [checklist, setChecklist] = useState<any[]>([]);
   const [stageIndex, setStageIndex] = useState(0);
   const [completedAt, setCompletedAt] = useState<string | null | undefined>(null);
+  const [dueDate, setDueDate] = useState("");
   const [saving, setSaving] = useState(false);
   const user = JSON.parse(localStorage.getItem("pmos_user") || "null");
 
@@ -123,6 +135,7 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
       setChecklist(ticket.checklist as any[]);
       setStageIndex(ticket.stage_index);
       setCompletedAt(ticket.completed_at);
+      setDueDate(ticket.due_date ? ticket.due_date.split('T')[0] : "");
       pmosApi.getNotes(ticket.id).then(setNotes).catch(() => {});
     } else {
       setNotes([]); setTitle(""); setProperty(""); setUnit(""); setAssignedTo(""); setTag(""); setChecklist([]); setCompletedAt(null);
@@ -163,7 +176,8 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
     if (!ticket) return;
     setSaving(true);
     try {
-      await pmosApi.updateTicket(ticket.id, { title, property, unit, assigned_to: assignedTo, tag, stage_index: stageIndex });
+      const dueDateIso = dueDate ? new Date(dueDate + 'T00:00:00.000Z').toISOString() : null;
+      await pmosApi.updateTicket(ticket.id, { title, property, unit, assigned_to: assignedTo, tag, stage_index: stageIndex, due_date: dueDateIso });
       if (checklist.length > 0) {
         await pmosApi.updateChecklist(ticket.id, checklist);
       }
@@ -243,6 +257,10 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
                   <button className="pmos-btn primary sm" onClick={markComplete}>Mark complete</button>
                 </>
               )}
+            </div>
+            <div className="pmos-field">
+              <label>Due by</label>
+              <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
             </div>
             <div className="pmos-row2">
               <div className="pmos-field">
@@ -396,10 +414,11 @@ function NewTicketModal({ pipeline, stageIndex = 0, users, onClose, onCreated }:
   const [tag, setTag] = useState("");
   const [category, setCategory] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
+  const [dueDate, setDueDate] = useState("");
 
   const create = async () => {
     if (!pipeline || !title.trim()) return;
-    const ticket = await pmosApi.createTicket({ title, property, unit, tag, category, assigned_to: assignedTo, pipeline_id: pipeline.id, stage_index: stageIndex });
+    const ticket = await pmosApi.createTicket({ title, property, unit, tag, category, assigned_to: assignedTo, pipeline_id: pipeline.id, stage_index: stageIndex, due_date: dueDate ? new Date(dueDate + 'T00:00:00.000Z').toISOString() : undefined });
     onCreated(ticket);
     onClose();
   };
@@ -452,6 +471,10 @@ function NewTicketModal({ pipeline, stageIndex = 0, users, onClose, onCreated }:
             <option value="">—</option>
             {users.map(u => <option key={u.id} value={u.display_name}>{u.display_name}</option>)}
           </select>
+        </div>
+        <div className="pmos-field">
+          <label>Due by</label>
+          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
         </div>
         <div className="pmos-field">
           <label>Starting stage</label>
@@ -572,7 +595,9 @@ export const Board: React.FC = () => {
   const overdue = visibleTickets.filter(t => {
     if (t.completed_at) return false;
     const opt = tagOpts.find((o: any) => o.name === t.tag);
-    return opt && ageDays(t.stage_entered_at) >= opt.slaDays;
+    const slaOverdue = !!(opt && ageDays(t.stage_entered_at) >= opt.slaDays);
+    const dueOverdue = !!(t.due_date && new Date(t.due_date).getTime() < Date.now());
+    return slaOverdue || dueOverdue;
   }).length;
 
   if (!user) return null;

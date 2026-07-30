@@ -41,6 +41,7 @@ export interface Ticket {
   created_at: string;
   stage_entered_at: string;
   completed_at?: string | null;
+  due_date?: string | null;
 }
 
 export interface Note {
@@ -101,6 +102,7 @@ export interface CreateTicketRequest {
   assigned_to?: string;
   pipeline_id: string;
   stage_index?: number;
+  due_date?: string | null;
 }
 
 export interface UpdateTicketRequest {
@@ -112,6 +114,7 @@ export interface UpdateTicketRequest {
   assigned_to?: string;
   stage_index?: number;
   completed_at?: string | null;
+  due_date?: string | null;
 }
 
 export interface CreateNoteRequest {
