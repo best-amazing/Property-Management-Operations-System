@@ -245,7 +245,7 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
                 {(stages ?? []).map((s, i) => <option key={i} value={i}>{s}</option>)}
               </select>
             </div>
-            <div className="pmos-field" style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div className="pmos-field" style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               {completedAt ? (
                 <>
                   <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>Completed {fmtDate(completedAt)}</span>
