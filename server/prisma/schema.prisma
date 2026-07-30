@@ -44,6 +44,7 @@ model Ticket {
   created_at       DateTime @default(now())
   stage_entered_at DateTime @default(now())
   completed_at     DateTime?
+  due_date         DateTime?
 
   pipeline_id      String
   pipeline         Pipeline @relation(fields: [pipeline_id], references: [id])
