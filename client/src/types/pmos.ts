@@ -57,6 +57,16 @@ export interface LoginResponse {
   user: User;
 }
 
+export interface LoginOtpResponse {
+  requiresOtp: boolean;
+  loginSessionToken: string;
+}
+
+export interface VerifyOtpRequest {
+  loginSessionToken: string;
+  code: string;
+}
+
 export interface LoginRequest {
   username: string;
   password: string;

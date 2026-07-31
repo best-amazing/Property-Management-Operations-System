@@ -1,9 +1,12 @@
 import { Request, Response } from "express";
-import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import { PrismaClient } from "@prisma/client";
 import { userService } from "../../../../services/user.service";
+import { generateOtp } from "../../../../utils/otp";
+import { sendOtpEmail } from "../../../../services/mailer";
 
-const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
+const prisma = new PrismaClient();
 
 export const loginHandler = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -15,22 +18,27 @@ export const loginHandler = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role, display_name: user.display_name },
-      JWT_SECRET,
-      { expiresIn: "24h" }
-    );
+    const code = generateOtp();
+    const codeHash = await bcrypt.hash(code, 10);
+    const sessionToken = crypto.randomBytes(32).toString("hex");
 
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        display_name: user.display_name,
-        role: user.role,
-        created_at: user.created_at,
+    await prisma.pendingLogin.create({
+      data: {
+        token: sessionToken,
+        userId: user.id,
+        codeHash,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       },
     });
+
+    try {
+      await sendOtpEmail(user.username, code);
+    } catch {
+      res.status(502).json({ error: "Failed to send verification code" });
+      return;
+    }
+
+    res.json({ requiresOtp: true, loginSessionToken: sessionToken });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

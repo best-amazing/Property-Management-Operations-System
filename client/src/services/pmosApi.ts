@@ -1,5 +1,5 @@
 import {
-  LoginResponse, LoginRequest,
+  LoginResponse, LoginOtpResponse, LoginRequest, VerifyOtpRequest,
   Pipeline, CreatePipelineRequest, UpdatePipelineRequest,
   Ticket, CreateTicketRequest, UpdateTicketRequest,
   Note, CreateNoteRequest,
@@ -34,7 +34,9 @@ export const pmosApi = {
   },
 
   login: (credentials: LoginRequest) =>
-    pmosApi.request<LoginResponse>("/client/auth/login", { method: "POST", body: JSON.stringify(credentials) }),
+    pmosApi.request<LoginOtpResponse>("/client/auth/login", { method: "POST", body: JSON.stringify(credentials) }),
+  verifyOtp: (data: VerifyOtpRequest) =>
+    pmosApi.request<LoginResponse>("/client/auth/login/verify-otp", { method: "POST", body: JSON.stringify(data) }),
 
   createUser: (data: CreateUserRequest) =>
     pmosApi.request<User>("/admin/users", { method: "POST", body: JSON.stringify(data) }),
