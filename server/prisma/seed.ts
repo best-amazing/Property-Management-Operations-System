@@ -12,6 +12,7 @@ async function main() {
     { username: "amazingpropertiesusa1@gmail.com",  display_name: "admin", password: adminPassword,  role: "admin" },
     { username: "priya",  display_name: "Priya Shah",  password: "priya123",  role: "staff" },
     { username: "jordan", display_name: "Jordan Lee",  password: "jordan123", role: "staff" },
+    { username: "ephraimedy@gmail.com", display_name: "Ephraim", password: "Ed1d1ongeph@", role: "staff" },
   ];
 
   for (const u of usersData) {
