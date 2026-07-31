@@ -15,11 +15,13 @@ export const verifyOtpHandler = async (req: Request, res: Response): Promise<voi
     });
 
     if (!pending || pending.used || pending.expiresAt < new Date()) {
+      console.log(`[auth:verify-otp] REJECTED session=${loginSessionToken} (expired or already used)`);
       res.status(401).json({ error: "Session expired, please log in again" });
       return;
     }
 
     if (pending.attempts >= 3) {
+      console.log(`[auth:verify-otp] REJECTED session=${loginSessionToken} user=${pending.userId} (too many attempts)`);
       res.status(429).json({ error: "Too many attempts, please log in again" });
       return;
     }
@@ -31,6 +33,7 @@ export const verifyOtpHandler = async (req: Request, res: Response): Promise<voi
         where: { id: pending.id },
         data: { attempts: { increment: 1 } },
       });
+      console.log(`[auth:verify-otp] INVALID code for session=${loginSessionToken} user=${pending.userId} attempt=${pending.attempts + 1}/3`);
       res.status(401).json({ error: "Invalid code" });
       return;
     }
@@ -42,6 +45,7 @@ export const verifyOtpHandler = async (req: Request, res: Response): Promise<voi
 
     const user = await prisma.user.findUnique({ where: { id: pending.userId } });
     if (!user) {
+      console.error(`[auth:verify-otp] REJECTED session=${loginSessionToken} user=${pending.userId} (user not found)`);
       res.status(401).json({ error: "User not found" });
       return;
     }
@@ -52,6 +56,7 @@ export const verifyOtpHandler = async (req: Request, res: Response): Promise<voi
       { expiresIn: "24h" }
     );
 
+    console.log(`[auth:verify-otp] SUCCESS session=${loginSessionToken} user=${user.id} username=${user.username}`);
     res.json({
       token,
       user: {
