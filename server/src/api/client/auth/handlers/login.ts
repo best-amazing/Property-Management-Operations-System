@@ -39,7 +39,7 @@ export const loginHandler = async (req: Request, res: Response): Promise<void> =
       await sendOtpEmail(user.username, code);
     } catch (err: any) {
       console.error(`[auth:login] FAILED to send OTP email for user=${user.id} session=${sessionToken}: ${err.message}`);
-      res.status(502).json({ error: "Failed to send verification code" });
+      res.status(500).json({ error: "Failed to send verification code", details: err.message });
       return;
     }
 

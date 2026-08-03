@@ -69,7 +69,7 @@ describe("Client Auth API", () => {
     expect(sendOtpEmail).not.toHaveBeenCalled();
   });
 
-  it("should return 502 when the OTP email fails to send", async () => {
+  it("should return 500 when the OTP email fails to send", async () => {
     (userService.findByUsername as jest.Mock).mockResolvedValue(mockUser);
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
     (prisma.pendingLogin.create as jest.Mock).mockResolvedValue({ token: "session-token" });
@@ -79,7 +79,7 @@ describe("Client Auth API", () => {
       .post("/api/v1/client/auth/login")
       .send({ username: "staff", password: "password123" });
 
-    expect(res.status).toBe(502);
+    expect(res.status).toBe(500);
     expect(res.body.error).toBe("Failed to send verification code");
   });
 
