@@ -1,40 +1,45 @@
 // services/mailer.ts
-import nodemailer from "nodemailer";
-import dns from "dns";
+import { google } from "googleapis";
 
-// Force Node.js to resolve IPv4 addresses first.
-// Render and many cloud containers do not support outbound IPv6, leading to ENETUNREACH errors.
-if (dns.setDefaultResultOrder) {
-  dns.setDefaultResultOrder("ipv4first");
+function getGmailClient() {
+  const clientId = process.env.GOOGLE_CLIENT_ID || process.env.GMAIL_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.GMAIL_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN || process.env.GMAIL_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("Missing Google OAuth environment variables (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN)");
+  }
+
+  const auth = new google.auth.OAuth2(clientId, clientSecret);
+  auth.setCredentials({ refresh_token: refreshToken });
+
+  return google.gmail({ version: "v1", auth });
 }
 
-const host = process.env.SMTP_HOST || "smtp.gmail.com";
-const port = parseInt(process.env.SMTP_PORT || "465", 10);
-const secure = process.env.SMTP_SECURE !== undefined 
-  ? process.env.SMTP_SECURE === "true" 
-  : port === 465;
-
-const user = process.env.SMTP_USER || process.env.GMAIL_USER;
-const pass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
-const fromHeader = process.env.SMTP_FROM || (user ? `"PMOS Login" <${user}>` : `"PMOS Login" <noreply@pmos.com>`);
-
-const transporter = nodemailer.createTransport({
-  host,
-  port,
-  secure,
-  auth: user && pass ? { user, pass } : undefined,
-  family: 4, // Force IPv4 socket family
-  connectionTimeout: 10000, // 10s connection timeout to avoid hanging Express requests
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-} as nodemailer.TransportOptions);
-
 export async function sendOtpEmail(toEmail: string, code: string) {
-  await transporter.sendMail({
-    from: fromHeader,
-    to: toEmail,
-    subject: "Your PMOS login code",
-    text: `Your PMOS login verification code is ${code}. It expires in 5 minutes. If you didn't request this, ignore this email.`,
-    html: `<p>Your PMOS login verification code is <strong>${code}</strong>.</p><p>It expires in 5 minutes. If you didn't request this, ignore this email.</p>`,
+  const gmail = getGmailClient();
+  const senderEmail = process.env.GOOGLE_EMAIL || process.env.GMAIL_USER || "me";
+
+  const messageLines = [
+    `From: "PMOS Login" <${senderEmail}>`,
+    `To: ${toEmail}`,
+    "Subject: Your PMOS login code",
+    "Content-Type: text/html; charset=utf-8",
+    "MIME-Version: 1.0",
+    "",
+    `<p>Your PMOS login verification code is <strong>${code}</strong>.</p><p>It expires in 5 minutes. If you didn't request this, ignore this email.</p>`,
+  ];
+
+  const rawMessage = Buffer.from(messageLines.join("\r\n"))
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  await gmail.users.messages.send({
+    userId: "me",
+    requestBody: {
+      raw: rawMessage,
+    },
   });
-}
+}
