@@ -6,7 +6,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc && tsc-alias",
     "start": "node dist/server.js",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "get-token": "tsx src/scripts/get-gmail-token.ts",
+    "test-email": "tsx src/scripts/test-email.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -26,6 +28,7 @@
     "express": "^5.2.1",
     "express-session": "^1.18.2",
     "firebase-admin": "^13.6.0",
+    "googleapis": "^174.0.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
