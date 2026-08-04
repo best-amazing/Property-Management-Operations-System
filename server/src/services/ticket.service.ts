@@ -86,7 +86,7 @@ export const ticketService = {
     const updated = await prisma.ticket.update({ where: { id }, data });
     const actor = user?.display_name || "system";
 
-    if (data.assigned_to && data.assigned_to !== existing.assigned_to && data.assigned_to !== actor) {
+    if (data.assigned_to && data.assigned_to !== existing.assigned_to) {
       notifyTicketAssigned(data.assigned_to, { ...existing, ...updated, assigned_to: data.assigned_to }, actor).catch((err) =>
         console.error(`[notification] FAILED ticket-assigned email: ${err.message}`)
       );
@@ -98,7 +98,7 @@ export const ticketService = {
         select: { stages: true },
       }))?.stages as any[] | undefined;
       const addressee = data.assigned_to ?? existing.assigned_to;
-      if (addressee && addressee !== actor) {
+      if (addressee) {
         const prevStage = stages?.[existing.stage_index] ?? String(existing.stage_index);
         const newStage = stages?.[data.stage_index] ?? String(data.stage_index);
         notifyTicketStatusUpdated(addressee, { ...existing, ...updated }, newStage, prevStage, actor).catch((err) =>

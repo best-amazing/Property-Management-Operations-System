@@ -13,7 +13,7 @@ export const noteService = {
 
     const note = await prisma.note.create({ data });
 
-    if (ticket?.assigned_to && ticket.assigned_to !== data.author) {
+    if (ticket?.assigned_to) {
       notifyNoteAdded(ticket.assigned_to, ticket, data.text, data.author || "Unknown").catch((err) =>
         console.error(`[notification] FAILED note-added email: ${err.message}`)
       );
