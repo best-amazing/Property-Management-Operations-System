@@ -16,18 +16,18 @@ function getGmailClient() {
   return google.gmail({ version: "v1", auth });
 }
 
-export async function sendOtpEmail(toEmail: string, code: string) {
+export async function sendEmail(toEmail: string, subject: string, htmlBody: string) {
   const gmail = getGmailClient();
   const senderEmail = process.env.GOOGLE_EMAIL || process.env.GMAIL_USER || "me";
 
   const messageLines = [
-    `From: "PMOS Login" <${senderEmail}>`,
+    `From: "PMOS" <${senderEmail}>`,
     `To: ${toEmail}`,
-    "Subject: Your PMOS login code",
+    `Subject: ${subject}`,
     "Content-Type: text/html; charset=utf-8",
     "MIME-Version: 1.0",
     "",
-    `<p>Your PMOS login verification code is <strong>${code}</strong>.</p><p>It expires in 5 minutes. If you didn't request this, ignore this email.</p>`,
+    htmlBody,
   ];
 
   const rawMessage = Buffer.from(messageLines.join("\r\n"))
@@ -42,4 +42,9 @@ export async function sendOtpEmail(toEmail: string, code: string) {
       raw: rawMessage,
     },
   });
+}
+
+export async function sendOtpEmail(toEmail: string, code: string) {
+  const body = `<p>Your PMOS login verification code is <strong>${code}</strong>.</p><p>It expires in 5 minutes. If you didn't request this, ignore this email.</p>`;
+  await sendEmail(toEmail, "Your PMOS login code", body);
 }

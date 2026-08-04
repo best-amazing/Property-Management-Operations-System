@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { notifyTicketAssigned, notifyTicketStatusUpdated } from "./notification.service";
 
 const prisma = new PrismaClient();
 
@@ -34,37 +35,79 @@ export const ticketService = {
     if (stages && stageIndex === stages.length - 1) {
       data.completed_at = data.completed_at || new Date();
     }
-    return prisma.ticket.create({ data });
+    const ticket = await prisma.ticket.create({ data });
+    if (ticket.assigned_to) {
+      notifyTicketAssigned(ticket.assigned_to, ticket, data.created_by || "system").catch((err) =>
+        console.error(`[notification] FAILED ticket-assigned email: ${err.message}`)
+      );
+    }
+    return ticket;
   },
   update: async (id: string, data: any, user?: { display_name: string }) => {
+    const existing = await prisma.ticket.findUnique({
+      where: { id },
+      select: {
+        pipeline_id: true,
+        stage_index: true,
+        history: true,
+        assigned_to: true,
+        title: true,
+        property: true,
+        unit: true,
+        due_date: true,
+      },
+    });
+    if (!existing) {
+      throw new Error("Ticket not found");
+    }
+
     if (data.stage_index !== undefined) {
-      const existing = await prisma.ticket.findUnique({
-        where: { id },
-        select: { pipeline_id: true, stage_index: true, history: true },
+      const pipeline = await prisma.pipeline.findUnique({
+        where: { id: existing.pipeline_id },
+        select: { stages: true },
       });
-      if (existing) {
-        const pipeline = await prisma.pipeline.findUnique({
-          where: { id: existing.pipeline_id },
-          select: { stages: true },
-        });
-        const stages = pipeline?.stages as any[] | undefined;
-        const lastIndex = stages ? stages.length - 1 : 0;
-        const history = (existing.history as any[]) || [];
-        history.push({
-          stage_index: data.stage_index,
-          stage_name: stages?.[data.stage_index] ?? String(data.stage_index),
-          entered_at: new Date().toISOString(),
-          user: user?.display_name || "system",
-        });
-        data.history = history;
-        if (data.stage_index === lastIndex) {
-          data.completed_at = new Date();
-        } else if (existing.stage_index === lastIndex) {
-          data.completed_at = null;
-        }
+      const stages = pipeline?.stages as any[] | undefined;
+      const lastIndex = stages ? stages.length - 1 : 0;
+      const history = (existing.history as any[]) || [];
+      history.push({
+        stage_index: data.stage_index,
+        stage_name: stages?.[data.stage_index] ?? String(data.stage_index),
+        entered_at: new Date().toISOString(),
+        user: user?.display_name || "system",
+      });
+      data.history = history;
+      if (data.stage_index === lastIndex) {
+        data.completed_at = new Date();
+      } else if (existing.stage_index === lastIndex) {
+        data.completed_at = null;
       }
     }
-    return prisma.ticket.update({ where: { id }, data });
+
+    const updated = await prisma.ticket.update({ where: { id }, data });
+    const actor = user?.display_name || "system";
+
+    if (data.assigned_to && data.assigned_to !== existing.assigned_to && data.assigned_to !== actor) {
+      notifyTicketAssigned(data.assigned_to, { ...existing, ...updated, assigned_to: data.assigned_to }, actor).catch((err) =>
+        console.error(`[notification] FAILED ticket-assigned email: ${err.message}`)
+      );
+    }
+
+    if (data.stage_index !== undefined && data.stage_index !== existing.stage_index) {
+      const stages = (await prisma.pipeline.findUnique({
+        where: { id: existing.pipeline_id },
+        select: { stages: true },
+      }))?.stages as any[] | undefined;
+      const addressee = data.assigned_to ?? existing.assigned_to;
+      if (addressee && addressee !== actor) {
+        const prevStage = stages?.[existing.stage_index] ?? String(existing.stage_index);
+        const newStage = stages?.[data.stage_index] ?? String(data.stage_index);
+        notifyTicketStatusUpdated(addressee, { ...existing, ...updated }, newStage, prevStage, actor).catch((err) =>
+          console.error(`[notification] FAILED status-update email: ${err.message}`)
+        );
+      }
+    }
+
+    return updated;
   },
   updateChecklist: (id: string, checklist: any) =>
     prisma.ticket.update({ where: { id }, data: { checklist } }),
