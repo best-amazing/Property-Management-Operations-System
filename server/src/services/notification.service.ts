@@ -40,7 +40,9 @@ function escapeHtml(value: unknown): string {
 
 function ticketRef(ticket: any): string {
   const property = ticket.property ? escapeHtml(ticket.property) : "";
-  const unit = ticket.unit ? ` Unit ${escapeHtml(ticket.unit)}` : "";
+  const unit = ticket.unit && !String(ticket.unit).toLowerCase().includes("unit")
+    ? ` Unit ${escapeHtml(ticket.unit)}`
+    : "";
   return `${property}${unit}`.trim() || "Unknown location";
 }
 
