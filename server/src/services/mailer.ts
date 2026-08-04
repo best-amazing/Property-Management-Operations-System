@@ -20,6 +20,8 @@ export async function sendEmail(toEmail: string, subject: string, htmlBody: stri
   const gmail = getGmailClient();
   const senderEmail = process.env.GOOGLE_EMAIL || process.env.GMAIL_USER || "me";
 
+  console.log(`[mailer] Sending email to=${toEmail} subject="${subject}" from=${senderEmail}`);
+
   const messageLines = [
     `From: "PMOS" <${senderEmail}>`,
     `To: ${toEmail}`,
@@ -36,12 +38,18 @@ export async function sendEmail(toEmail: string, subject: string, htmlBody: stri
     .replace(/\//g, "_")
     .replace(/=+$/, "");
 
-  await gmail.users.messages.send({
-    userId: "me",
-    requestBody: {
-      raw: rawMessage,
-    },
-  });
+  try {
+    await gmail.users.messages.send({
+      userId: "me",
+      requestBody: {
+        raw: rawMessage,
+      },
+    });
+    console.log(`[mailer] Email sent OK to=${toEmail} subject="${subject}"`);
+  } catch (err: any) {
+    console.error(`[mailer] Email send FAILED to=${toEmail} subject="${subject}": ${err.message}`);
+    throw err;
+  }
 }
 
 export async function sendOtpEmail(toEmail: string, code: string) {

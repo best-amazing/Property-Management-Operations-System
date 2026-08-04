@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { notifyTicketAssigned, notifyTicketStatusUpdated } from "./notification.service";
+import { notifyTicketAssigned, notifyTicketStatusUpdated, resolveAssigneeEmail } from "./notification.service";
 
 const prisma = new PrismaClient();
 
@@ -37,9 +37,17 @@ export const ticketService = {
     }
     const ticket = await prisma.ticket.create({ data });
     if (ticket.assigned_to) {
-      notifyTicketAssigned(ticket.assigned_to, ticket, data.created_by || "system").catch((err) =>
-        console.error(`[notification] FAILED ticket-assigned email: ${err.message}`)
-      );
+      console.log(`[notification] ticket created id=${ticket.id} assigned_to=${ticket.assigned_to}`);
+      const email = await resolveAssigneeEmail(ticket.assigned_to);
+      if (email) {
+        notifyTicketAssigned(email, ticket, data.created_by || "system").catch((err) =>
+          console.error(`[notification] FAILED ticket-assigned email: ${err.message}`)
+        );
+      } else {
+        console.log(`[notification] skip ticket-assigned email for ${ticket.assigned_to}`);
+      }
+    } else {
+      console.log(`[notification] ticket created id=${ticket.id} with NO assignee, skipping email`);
     }
     return ticket;
   },
@@ -87,9 +95,15 @@ export const ticketService = {
     const actor = user?.display_name || "system";
 
     if (data.assigned_to && data.assigned_to !== existing.assigned_to) {
-      notifyTicketAssigned(data.assigned_to, { ...existing, ...updated, assigned_to: data.assigned_to }, actor).catch((err) =>
-        console.error(`[notification] FAILED ticket-assigned email: ${err.message}`)
-      );
+      console.log(`[notification] assignment changed ticket=${id} ${existing.assigned_to} -> ${data.assigned_to}`);
+      const email = await resolveAssigneeEmail(data.assigned_to);
+      if (email) {
+        notifyTicketAssigned(email, { ...existing, ...updated, assigned_to: data.assigned_to }, actor).catch((err) =>
+          console.error(`[notification] FAILED ticket-assigned email: ${err.message}`)
+        );
+      } else {
+        console.log(`[notification] skip assignment email for ${data.assigned_to}`);
+      }
     }
 
     if (data.stage_index !== undefined && data.stage_index !== existing.stage_index) {
@@ -98,12 +112,16 @@ export const ticketService = {
         select: { stages: true },
       }))?.stages as any[] | undefined;
       const addressee = data.assigned_to ?? existing.assigned_to;
-      if (addressee) {
+      const email = await resolveAssigneeEmail(addressee);
+      if (email) {
         const prevStage = stages?.[existing.stage_index] ?? String(existing.stage_index);
         const newStage = stages?.[data.stage_index] ?? String(data.stage_index);
-        notifyTicketStatusUpdated(addressee, { ...existing, ...updated }, newStage, prevStage, actor).catch((err) =>
+        console.log(`[notification] status changed ticket=${id} ${prevStage} -> ${newStage} notify=${email}`);
+        notifyTicketStatusUpdated(email, { ...existing, ...updated }, newStage, prevStage, actor).catch((err) =>
           console.error(`[notification] FAILED status-update email: ${err.message}`)
         );
+      } else {
+        console.log(`[notification] status changed ticket=${id} but no resolvable assignee, skipping email`);
       }
     }
 

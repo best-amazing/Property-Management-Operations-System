@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { notifyNoteAdded } from "./notification.service";
+import { notifyNoteAdded, resolveAssigneeEmail } from "./notification.service";
 
 const prisma = new PrismaClient();
 
@@ -14,9 +14,14 @@ export const noteService = {
     const note = await prisma.note.create({ data });
 
     if (ticket?.assigned_to) {
-      notifyNoteAdded(ticket.assigned_to, ticket, data.text, data.author || "Unknown").catch((err) =>
-        console.error(`[notification] FAILED note-added email: ${err.message}`)
-      );
+      const email = await resolveAssigneeEmail(ticket.assigned_to);
+      if (email) {
+        notifyNoteAdded(email, ticket, data.text, data.author || "Unknown").catch((err) =>
+          console.error(`[notification] FAILED note-added email: ${err.message}`)
+        );
+      } else {
+        console.log(`[notification] skip note email for ${ticket.assigned_to}`);
+      }
     }
 
     return note;
