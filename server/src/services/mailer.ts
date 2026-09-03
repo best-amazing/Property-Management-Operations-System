@@ -50,3 +50,16 @@ export async function sendEmail(toEmail: string, subject: string, htmlBody: stri
     throw err;
   }
 }
+
+export async function sendOtpEmail(toEmail: string, code: string) {
+  const subject = "Your PMOS verification code";
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+      <h2>Verification Code</h2>
+      <p>Your one-time verification code is:</p>
+      <p style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #2563eb;">${code}</p>
+      <p>This code expires in 5 minutes. If you did not request this, please ignore this email.</p>
+    </div>
+  `;
+  await sendEmail(toEmail, subject, htmlBody);
+}
