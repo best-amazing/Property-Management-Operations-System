@@ -1,5 +1,6 @@
 // services/mailer.ts
 import nodemailer from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
 export async function sendEmail(toEmail: string, subject: string, htmlBody: string) {
   const senderEmail = process.env.GOOGLE_EMAIL || process.env.GMAIL_USER || "me";
@@ -10,6 +11,7 @@ export async function sendEmail(toEmail: string, subject: string, htmlBody: stri
     throw new Error("Missing GMAIL_USER or GMAIL_APP_PASSWORD in environment variables");
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
@@ -19,7 +21,7 @@ export async function sendEmail(toEmail: string, subject: string, htmlBody: stri
       user: user,
       pass: pass,
     },
-  });
+  } as any);
 
   console.log(`[mailer] Sending email to=${toEmail} subject="${subject}" from=${senderEmail}`);
 
