@@ -17,8 +17,8 @@ export async function sendEmail(toEmail: string, subject: string, htmlBody: stri
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,       // use STARTTLS on port 587 (less commonly blocked than 465)
     family: 4,          // force IPv4 – avoids ENETUNREACH on IPv6-only resolves
     auth: {
       user: user,
