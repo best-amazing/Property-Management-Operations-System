@@ -1,18 +1,22 @@
 // services/mailer.ts
 import nodemailer from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
-import dns from "dns";
+import dns from "dns/promises";
 
-// Force IPv4-only resolution for nodemailer's socket connections.
-// Render's network doesn't support IPv6 egress, so any AAAA record
-// causes ENETUNREACH. family:4 alone isn't consistently honored by
-// nodemailer's connection setup, so we override the lookup function directly.
-function ipv4Lookup(
-  hostname: string,
-  options: dns.LookupOneOptions,
-  callback: (err: NodeJS.ErrnoException | null, address: string, family: number) => void
-) {
-  dns.lookup(hostname, { family: 4 }, callback);
+// Render's network has no IPv6 egress, so connecting to an AAAA record
+// yields ENETUNREACH. nodemailer 9.x passes the hostname straight to
+// net.createConnection (ignoring any `lookup` / `family` option), so the
+// only reliable fix is to pre-resolve the hostname to an IPv4 address and
+// hand the raw IP to the transporter, bypassing DNS at connect time.
+async function resolveIPv4(hostname: string): Promise<string> {
+  try {
+    const addresses = await dns.resolve4(hostname);
+    if (!addresses.length) throw new Error(`No A records for ${hostname}`);
+    return addresses[0];
+  } catch (err: any) {
+    console.warn(`[mailer] dns.resolve4(${hostname}) failed, falling back to hostname: ${err.message}`);
+    return hostname;
+  }
 }
 
 export async function sendEmail(toEmail: string, subject: string, htmlBody: string) {
@@ -24,14 +28,20 @@ export async function sendEmail(toEmail: string, subject: string, htmlBody: stri
     throw new Error("Missing GMAIL_USER or GMAIL_APP_PASSWORD in environment variables");
   }
 
-  // Cast needed: @types/nodemailer@8.0.1 doesn't include `family` or `lookup`
-  // in its type definitions, but nodemailer 9.x supports them at runtime.
+  // Pre-resolve to IPv4 so nodemailer never sees the hostname and can't pick AAAA.
+  // We keep the original hostname in the `name` field so TLS SNI still works.
+  const smtpHost = "smtp.gmail.com";
+  const smtpIp = await resolveIPv4(smtpHost);
+  console.log(`[mailer] Resolved ${smtpHost} -> ${smtpIp}`);
+
+  // Cast needed: @types/nodemailer@8.0.1 doesn't declare all options that
+  // nodemailer 9.x supports at runtime.
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
+    host: smtpIp,       // raw IPv4 — no DNS lookup at connect time
     port: 587,
     secure: false,
-    family: 4,
-    lookup: ipv4Lookup, // <-- key addition
+    name: smtpHost,     // used for EHLO and TLS SNI
+    tls: { servername: smtpHost }, // ensure TLS cert is validated against the real hostname
     auth: { user, pass },
   } as SMTPTransport.Options);
 
