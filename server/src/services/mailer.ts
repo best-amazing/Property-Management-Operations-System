@@ -1,6 +1,9 @@
 // services/mailer.ts
 import nodemailer from "nodemailer";
-import type SMTPTransport from "nodemailer/lib/smtp-transport";
+import dns from "dns";
+
+// Force IPv4 DNS resolution – the hosting environment lacks IPv6 connectivity
+dns.setDefaultResultOrder("ipv4first");
 
 export async function sendEmail(toEmail: string, subject: string, htmlBody: string) {
   const senderEmail = process.env.GOOGLE_EMAIL || process.env.GMAIL_USER || "me";
