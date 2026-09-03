@@ -11,7 +11,10 @@ export async function sendEmail(toEmail: string, subject: string, htmlBody: stri
   }
 
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    family: 4,          // force IPv4 – avoids ENETUNREACH on IPv6-only resolves
     auth: {
       user: user,
       pass: pass,
