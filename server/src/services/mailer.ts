@@ -37,11 +37,14 @@ export async function sendEmail(toEmail: string, subject: string, htmlBody: stri
   // Cast needed: @types/nodemailer@8.0.1 doesn't declare all options that
   // nodemailer 9.x supports at runtime.
   const transporter = nodemailer.createTransport({
-    host: smtpIp,       // raw IPv4 — no DNS lookup at connect time
-    port: 587,
-    secure: false,
-    name: smtpHost,     // used for EHLO and TLS SNI
-    tls: { servername: smtpHost }, // ensure TLS cert is validated against the real hostname
+    host: smtpIp,              // raw IPv4 — no DNS lookup at connect time
+    port: 465,                 // direct SSL (avoids Render blocking STARTTLS on 587)
+    secure: true,              // SSL from the start, no STARTTLS upgrade needed
+    name: smtpHost,            // used for EHLO
+    tls: { servername: smtpHost }, // TLS cert validated against real hostname, not IP
+    connectionTimeout: 10000,  // 10 s to establish TCP connection
+    greetingTimeout: 10000,    // 10 s to receive SMTP greeting after connect
+    socketTimeout: 30000,      // 30 s idle timeout during send
     auth: { user, pass },
   } as SMTPTransport.Options);
 
