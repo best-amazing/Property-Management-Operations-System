@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { staffTypeService } from "../../../services/staff-type.service";
+import { staffTypeService } from "../../services/staff-type.service";
 
 const router = Router();
 

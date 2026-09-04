@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { ticketCategoryService } from "../../../services/ticket-category.service";
+import { ticketCategoryService } from "../../services/ticket-category.service";
 
 const router = Router();
 
