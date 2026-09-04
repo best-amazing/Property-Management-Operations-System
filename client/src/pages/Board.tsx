@@ -5,7 +5,8 @@ import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea
 import { pmosApi } from "../services/pmosApi";
 import { Pipeline, Ticket, User, Note, NoteActivity, ActivityItem } from "../types/pmos";
 import { avatarSwatch, initials, ageDays, fmtDate } from "../utils/ui";
-import { usePipelines, useTickets, useUsers, QUERY_KEYS } from "../hooks/useApi";
+import { usePipelines, useTickets, useUsers, useMe, QUERY_KEYS } from "../hooks/useApi";
+import toast from "react-hot-toast";
 
 /* ── helpers ── */
 function Avatar({ name, size = 22 }: { name: string; size?: number }) {
@@ -514,7 +515,7 @@ export const Board: React.FC = () => {
   const [newTicketStage, setNewTicketStage] = useState(0);
   const [pipelineCounts, setPipelineCounts] = useState<Record<string, number>>({});
 
-  const { data: me } = useApi.useMe();
+  const { data: me } = useMe();
   const { data: pipelines = [] } = usePipelines();
   const { data: tickets = [], isLoading: ticketsLoading } = useTickets(activePipelineId, filterMine);
 
