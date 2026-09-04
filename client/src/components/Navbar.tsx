@@ -34,13 +34,19 @@ export const Navbar: React.FC = () => {
     <>
       <nav className="bg-gray-800 text-white p-4 flex justify-between items-center">
         <div className="flex space-x-6 items-center">
-          <h1 className="text-xl font-bold">PMOS</h1>
+          <h1 className="text-xl font-bold">AB Investment Groups</h1>
           <Link to="/" className="hover:text-gray-300">Board</Link>
           <Link to="/history" className="hover:text-gray-300">History</Link>
         </div>
         <div className="flex space-x-4 items-center">
           <button onClick={openActivity} className="hover:text-gray-300">Activity</button>
-          <Link to="/admin" className="hover:text-gray-300">Admin Settings</Link>
+          {(() => {
+            try {
+              const role = JSON.parse(atob(token.split(".")[1])).role;
+              if (role === "admin") return <Link to="/admin" className="hover:text-gray-300">Admin Settings</Link>;
+            } catch {}
+            return null;
+          })()}
           <button onClick={handleLogout} className="hover:text-gray-300">Logout</button>
         </div>
       </nav>

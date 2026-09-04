@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { pmosApi } from "../services/pmosApi";
 import { User, Pipeline } from "../types/pmos";
 import { avatarSwatch, initials } from "../utils/ui";
-import { usePipelines, useUsers, QUERY_KEYS } from "../hooks/useApi";
+import { usePipelines, useUsers, useStaffTypes, useTeams, useTicketCategories, QUERY_KEYS } from "../hooks/useApi";
 
 const PALETTE = [
   { name: "Rust", color: "#B23A2E", soft: "#F6DEDA" },
@@ -36,19 +36,41 @@ function TagRow({ name, swatch, sla, onChange, onRemove }: {
 export const AdminSettings: React.FC = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  
   const { data: users = [], isLoading: usersLoading, isError: usersError } = useUsers();
   const { data: pipelines = [], isLoading: pipelinesLoading } = usePipelines();
-  const [activeTab, setActiveTab] = useState<"team" | "services">("team");
+  const { data: staffTypes = [] } = useStaffTypes();
+  const { data: teams = [] } = useTeams();
+  const { data: categories = [] } = useTicketCategories();
+
+  const [activeTab, setActiveTab] = useState<"team" | "services" | "categories" | "staffTypes" | "teams">("team");
 
   // Team form state
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
-  const [newRole, setNewRole] = useState<"admin" | "staff">("staff");
+  const [newRole, setNewRole] = useState<"admin" | "team_lead" | "staff">("staff");
+  const [newStaffTypeId, setNewStaffTypeId] = useState("");
+  const [newTeamId, setNewTeamId] = useState("");
+  
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-  const [editRole, setEditRole] = useState<"admin" | "staff">("staff");
+  const [editRole, setEditRole] = useState<"admin" | "team_lead" | "staff">("staff");
   const [editPassword, setEditPassword] = useState("");
+  const [editStaffTypeId, setEditStaffTypeId] = useState("");
+  const [editTeamId, setEditTeamId] = useState("");
+
+  // Categories
+  const [newCatName, setNewCatName] = useState("");
+
+  // Staff Types
+  const [newStaffTypeName, setNewStaffTypeName] = useState("");
+  const [newStaffTypePerms, setNewStaffTypePerms] = useState<string[]>([]);
+  const [newStaffTypeCats, setNewStaffTypeCats] = useState<string[]>([]);
+
+  // Teams
+  const [newTeamName, setNewTeamName] = useState("");
+  const [newTeamLeadId, setNewTeamLeadId] = useState("");
 
   // Services form state
   const [svcName, setSvcName] = useState("");
@@ -84,10 +106,13 @@ export const AdminSettings: React.FC = () => {
   try { currentRole = JSON.parse(atob(token.split(".")[1])).role; } catch {}
   if (currentRole !== "admin") { navigate("/"); return null; }
 
-  // Team
+  // Team Handlers
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    await pmosApi.createUser({ username: newUsername, password: newPassword, display_name: newDisplayName, role: newRole });
+    await pmosApi.createUser({ 
+      username: newUsername, password: newPassword, display_name: newDisplayName, role: newRole,
+      staff_type_id: newStaffTypeId || undefined, team_id: newTeamId || undefined
+    });
     setNewUsername(""); setNewPassword(""); setNewDisplayName("");
     toast.success("Team member created");
     qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
@@ -103,18 +128,67 @@ export const AdminSettings: React.FC = () => {
     setEditingUserId(u.id);
     setEditName(u.display_name);
     setEditRole(u.role);
+    setEditStaffTypeId(u.staff_type_id || "");
+    setEditTeamId(u.team_id || "");
     setEditPassword("");
   };
 
   const saveEdit = async () => {
     if (!editingUserId) return;
-    await pmosApi.updateUser(editingUserId, { display_name: editName, role: editRole, ...(editPassword ? { password: editPassword } : {}) });
+    await pmosApi.updateUser(editingUserId, { 
+      display_name: editName, role: editRole, 
+      staff_type_id: editStaffTypeId || undefined, team_id: editTeamId || undefined,
+      ...(editPassword ? { password: editPassword } : {}) 
+    });
     setEditingUserId(null);
     toast.success("Team member updated");
     qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
   };
 
-  // Services
+  // Category Handlers
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await pmosApi.createTicketCategory({ name: newCatName });
+    setNewCatName("");
+    toast.success("Category created");
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.ticketCategories });
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm("Remove this category?")) return;
+    await pmosApi.deleteTicketCategory(id);
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.ticketCategories });
+  };
+
+  // Staff Type Handlers
+  const handleCreateStaffType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await pmosApi.createStaffType({ name: newStaffTypeName, permissions: newStaffTypePerms, allowed_categories: newStaffTypeCats });
+    setNewStaffTypeName(""); setNewStaffTypePerms([]); setNewStaffTypeCats([]);
+    toast.success("Staff type created");
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.staffTypes });
+  };
+  const handleDeleteStaffType = async (id: string) => {
+    if (!confirm("Remove this staff type?")) return;
+    await pmosApi.deleteStaffType(id);
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.staffTypes });
+  };
+
+  // Team Group Handlers
+  const handleCreateTeamGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await pmosApi.createTeam({ name: newTeamName, lead_id: newTeamLeadId || undefined });
+    setNewTeamName(""); setNewTeamLeadId("");
+    toast.success("Team created");
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.teams });
+  };
+  const handleDeleteTeamGroup = async (id: string) => {
+    if (!confirm("Remove this team?")) return;
+    await pmosApi.deleteTeam(id);
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.teams });
+  };
+
+  // Services Handlers
   const addStage = () => setSvcStages(prev => [...prev, ""]);
   const removeStage = (i: number) => setSvcStages(prev => prev.filter((_, idx) => idx !== i));
   const updateStage = (i: number, val: string) => setSvcStages(prev => prev.map((s, idx) => idx === i ? val : s));
@@ -152,7 +226,6 @@ export const AdminSettings: React.FC = () => {
   const handleDeletePipeline = async (id: string) => {
     const p = pipelines.find(p => p.id === id);
     if (!p) return;
-    const count = 0; // We don't have ticket count easily here
     if (!confirm(`Delete "${p.label}"? This will also delete all tickets in this service.`)) return;
     await pmosApi.deletePipeline(id);
     qc.invalidateQueries({ queryKey: QUERY_KEYS.pipelines });
@@ -207,11 +280,14 @@ export const AdminSettings: React.FC = () => {
 
   return (
     <div className="pmos-modal-bg show" style={{ position: "fixed", inset: 0, zIndex: 50 }}>
-      <div className="pmos-modal wide" onClick={e => e.stopPropagation()} style={{ maxHeight: "90vh", overflowY: "auto" }}>
+      <div className="pmos-modal wide" onClick={e => e.stopPropagation()} style={{ maxHeight: "90vh", overflowY: "auto", minWidth: 800 }}>
         <h3>Admin settings</h3>
         <div className="pmos-modal-tabs">
-          <button className={`pmos-seg-btn ${activeTab === "team" ? "active" : ""}`} onClick={() => setActiveTab("team")}>Team</button>
-          <button className={`pmos-seg-btn ${activeTab === "services" ? "active" : ""}`} onClick={() => setActiveTab("services")}>Services</button>
+          <button className={`pmos-seg-btn ${activeTab === "team" ? "active" : ""}`} onClick={() => setActiveTab("team")}>Users</button>
+          <button className={`pmos-seg-btn ${activeTab === "teams" ? "active" : ""}`} onClick={() => setActiveTab("teams")}>Teams</button>
+          <button className={`pmos-seg-btn ${activeTab === "staffTypes" ? "active" : ""}`} onClick={() => setActiveTab("staffTypes")}>Staff Types</button>
+          <button className={`pmos-seg-btn ${activeTab === "categories" ? "active" : ""}`} onClick={() => setActiveTab("categories")}>Categories</button>
+          <button className={`pmos-seg-btn ${activeTab === "services" ? "active" : ""}`} onClick={() => setActiveTab("services")}>Pipelines</button>
         </div>
 
         {activeTab === "team" && (
@@ -227,15 +303,31 @@ export const AdminSettings: React.FC = () => {
                   {isEditing ? (
                     <div className="grow" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                       <div className="pmos-field" style={{ margin: 0, flex: "1 1 140px" }}><input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Name" /></div>
-                      <div className="pmos-field" style={{ margin: 0, width: 100 }}><select value={editRole} onChange={e => setEditRole(e.target.value as any)}><option value="staff">Staff</option><option value="admin">Admin</option></select></div>
-                      <div className="pmos-field" style={{ margin: 0, flex: "1 1 120px" }}><input value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="New password (leave blank)" /></div>
+                      <div className="pmos-field" style={{ margin: 0, width: 100 }}><select value={editRole} onChange={e => setEditRole(e.target.value as any)}><option value="staff">Staff</option><option value="team_lead">Team Lead</option><option value="admin">Admin</option></select></div>
+                      <div className="pmos-field" style={{ margin: 0, width: 120 }}>
+                        <select value={editStaffTypeId} onChange={e => setEditStaffTypeId(e.target.value)}>
+                          <option value="">No Staff Type</option>
+                          {staffTypes.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+                        </select>
+                      </div>
+                      <div className="pmos-field" style={{ margin: 0, width: 120 }}>
+                        <select value={editTeamId} onChange={e => setEditTeamId(e.target.value)}>
+                          <option value="">No Team</option>
+                          {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                      </div>
+                      <div className="pmos-field" style={{ margin: 0, flex: "1 1 120px" }}><input value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="New pass..." /></div>
                       <button className="pmos-btn sm" onClick={saveEdit}>Save</button>
                       <button className="pmos-btn sm" onClick={() => setEditingUserId(null)}>Cancel</button>
                     </div>
                   ) : (
                     <div className="grow">
                       <div className="lbl">{u.display_name} <span className={`pmos-role-badge ${u.role}`}>{u.role}</span></div>
-                      <div className="sub">username: {u.username}</div>
+                      <div className="sub">
+                        {u.username} 
+                        {u.staff_type && ` • Staff Type: ${u.staff_type.name}`}
+                        {u.team && ` • Team: ${u.team.name}`}
+                      </div>
                     </div>
                   )}
                   <button className="pmos-btn sm" onClick={() => startEdit(u)} style={{ marginRight: 6 }}>Edit</button>
@@ -244,17 +336,127 @@ export const AdminSettings: React.FC = () => {
               );
             })}
             <hr className="pmos-divider" />
-            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Add a team member</div>
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Add a user</div>
             <form onSubmit={handleCreateUser}>
               <div className="pmos-row2">
-                <div className="pmos-field"><label>Username</label><input value={newUsername} onChange={e => setNewUsername(e.target.value)} /></div>
+                <div className="pmos-field"><label>Username (Email)</label><input value={newUsername} onChange={e => setNewUsername(e.target.value)} /></div>
                 <div className="pmos-field"><label>Display name</label><input value={newDisplayName} onChange={e => setNewDisplayName(e.target.value)} /></div>
+                <div className="pmos-field"><label>Password</label><input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></div>
               </div>
               <div className="pmos-row2">
-                <div className="pmos-field"><label>Password</label><input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></div>
-                <div className="pmos-field"><label>Role</label><select value={newRole} onChange={e => setNewRole(e.target.value as "admin" | "staff")}><option value="staff">Staff</option><option value="admin">Admin</option></select></div>
+                <div className="pmos-field"><label>Role</label><select value={newRole} onChange={e => setNewRole(e.target.value as "admin" | "team_lead" | "staff")}><option value="staff">Staff</option><option value="team_lead">Team Lead</option><option value="admin">Admin</option></select></div>
+                <div className="pmos-field">
+                  <label>Staff Type</label>
+                  <select value={newStaffTypeId} onChange={e => setNewStaffTypeId(e.target.value)}>
+                    <option value="">None</option>
+                    {staffTypes.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+                  </select>
+                </div>
+                <div className="pmos-field">
+                  <label>Team</label>
+                  <select value={newTeamId} onChange={e => setNewTeamId(e.target.value)}>
+                    <option value="">None</option>
+                    {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
               </div>
-              <button type="submit" className="pmos-btn primary">Add team member</button>
+              <button type="submit" className="pmos-btn primary">Add user</button>
+            </form>
+          </div>
+        )}
+
+        {activeTab === "teams" && (
+          <div>
+            {teams.map(t => (
+               <div key={t.id} className="pmos-admin-row">
+                 <div className="grow">
+                   <div className="lbl">{t.name}</div>
+                   <div className="sub">Lead: {t.lead?.display_name || "None"} • Members: {t.members?.length || 0}</div>
+                 </div>
+                 <button className="pmos-btn sm ghost-danger" onClick={() => handleDeleteTeamGroup(t.id)}>Remove</button>
+               </div>
+            ))}
+            <hr className="pmos-divider" />
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Create Team</div>
+            <form onSubmit={handleCreateTeamGroup}>
+              <div className="pmos-row2">
+                <div className="pmos-field"><label>Team Name</label><input value={newTeamName} onChange={e => setNewTeamName(e.target.value)} /></div>
+                <div className="pmos-field">
+                  <label>Lead</label>
+                  <select value={newTeamLeadId} onChange={e => setNewTeamLeadId(e.target.value)}>
+                    <option value="">None</option>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.display_name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <button type="submit" className="pmos-btn primary">Create Team</button>
+            </form>
+          </div>
+        )}
+
+        {activeTab === "staffTypes" && (
+          <div>
+            {staffTypes.map(st => (
+               <div key={st.id} className="pmos-admin-row">
+                 <div className="grow">
+                   <div className="lbl">{st.name}</div>
+                   <div className="sub">Perms: {st.permissions.join(", ") || "None"} • Cats: {st.allowed_categories.length}</div>
+                 </div>
+                 <button className="pmos-btn sm ghost-danger" onClick={() => handleDeleteStaffType(st.id)}>Remove</button>
+               </div>
+            ))}
+            <hr className="pmos-divider" />
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Create Staff Type</div>
+            <form onSubmit={handleCreateStaffType}>
+              <div className="pmos-row2">
+                <div className="pmos-field"><label>Name</label><input value={newStaffTypeName} onChange={e => setNewStaffTypeName(e.target.value)} /></div>
+              </div>
+              <div className="pmos-field">
+                <label>Permissions</label>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {["view", "create", "edit", "comment", "change_status"].map(p => (
+                    <label key={p} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <input type="checkbox" checked={newStaffTypePerms.includes(p)} onChange={e => {
+                        if (e.target.checked) setNewStaffTypePerms([...newStaffTypePerms, p]);
+                        else setNewStaffTypePerms(newStaffTypePerms.filter(x => x !== p));
+                      }} />
+                      {p}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="pmos-field">
+                <label>Allowed Categories</label>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", maxHeight: 150, overflowY: "auto", border: "1px solid #ddd", padding: 10, borderRadius: 6 }}>
+                  {categories.map(c => (
+                    <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <input type="checkbox" checked={newStaffTypeCats.includes(c.id)} onChange={e => {
+                        if (e.target.checked) setNewStaffTypeCats([...newStaffTypeCats, c.id]);
+                        else setNewStaffTypeCats(newStaffTypeCats.filter(x => x !== c.id));
+                      }} />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <button type="submit" className="pmos-btn primary">Create Staff Type</button>
+            </form>
+          </div>
+        )}
+
+        {activeTab === "categories" && (
+          <div>
+            {categories.map(c => (
+               <div key={c.id} className="pmos-admin-row">
+                 <div className="grow"><div className="lbl">{c.name}</div></div>
+                 <button className="pmos-btn sm ghost-danger" onClick={() => handleDeleteCategory(c.id)}>Remove</button>
+               </div>
+            ))}
+            <hr className="pmos-divider" />
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Create Global Category</div>
+            <form onSubmit={handleCreateCategory} className="pmos-row2">
+              <div className="pmos-field"><input placeholder="Category Name" value={newCatName} onChange={e => setNewCatName(e.target.value)} /></div>
+              <button type="submit" className="pmos-btn primary" style={{ marginTop: 0 }}>Create</button>
             </form>
           </div>
         )}

@@ -51,7 +51,7 @@ export const verifyOtpHandler = async (req: Request, res: Response): Promise<voi
     }
 
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role, display_name: user.display_name },
+      { id: user.id, username: user.username, role: user.role, display_name: user.display_name, staff_type_id: user.staff_type_id, team_id: user.team_id },
       JWT_SECRET,
       { expiresIn: "24h" }
     );
@@ -64,6 +64,8 @@ export const verifyOtpHandler = async (req: Request, res: Response): Promise<voi
         username: user.username,
         display_name: user.display_name,
         role: user.role,
+        staff_type_id: user.staff_type_id,
+        team_id: user.team_id,
         created_at: user.created_at,
       },
     });

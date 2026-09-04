@@ -1,10 +1,34 @@
-export type Role = "admin" | "staff";
+export type Role = "admin" | "team_lead" | "staff";
+
+export interface TicketCategory {
+  id: string;
+  name: string;
+}
+
+export interface StaffType {
+  id: string;
+  name: string;
+  permissions: string[];
+  allowed_categories: string[];
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  lead_id?: string;
+  lead?: User;
+  members: User[];
+}
 
 export interface User {
   id: string;
   username: string;
   display_name: string;
   role: Role;
+  staff_type_id?: string;
+  team_id?: string;
+  staff_type?: StaffType;
+  team?: Team;
   created_at: string;
 }
 
@@ -38,6 +62,8 @@ export interface Ticket {
   checklist: { index: number; done: boolean; label: string }[];
   history: { stage_index: number; stage_name: string; entered_at: string; user: string }[];
   pipeline_id: string;
+  team_id?: string | null;
+  priority?: string | null;
   created_at: string;
   stage_entered_at: string;
   completed_at?: string | null;
@@ -77,12 +103,16 @@ export interface CreateUserRequest {
   password: string;
   display_name: string;
   role: Role;
+  staff_type_id?: string;
+  team_id?: string;
 }
 
 export interface UpdateUserRequest {
   display_name?: string;
   password?: string;
   role?: Role;
+  staff_type_id?: string;
+  team_id?: string;
 }
 
 export interface CreatePipelineRequest {
@@ -111,6 +141,8 @@ export interface CreateTicketRequest {
   category?: string;
   assigned_to?: string;
   pipeline_id: string;
+  team_id?: string;
+  priority?: string;
   stage_index?: number;
   due_date?: string | null;
 }
@@ -122,6 +154,8 @@ export interface UpdateTicketRequest {
   tag?: string;
   category?: string;
   assigned_to?: string;
+  team_id?: string;
+  priority?: string;
   stage_index?: number;
   completed_at?: string | null;
   due_date?: string | null;

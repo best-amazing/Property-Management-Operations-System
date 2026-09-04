@@ -106,8 +106,8 @@ function BoardColumn({ pipeline, stage, stageIndex, tickets, onOpen, onAddTicket
 }
 
 /* ── Ticket drawer ── */
-function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
-  ticket: Ticket | null; pipeline: Pipeline | null; users: User[]; onClose: () => void; onDeleted: (id: string) => void;
+function TicketDrawer({ ticket, pipeline, users, me, onClose, onDeleted }: {
+  ticket: Ticket | null; pipeline: Pipeline | null; users: User[]; me: any; onClose: () => void; onDeleted: (id: string) => void;
 }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [noteText, setNoteText] = useState("");
@@ -123,7 +123,10 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
   const [completedAt, setCompletedAt] = useState<string | null | undefined>(null);
   const [dueDate, setDueDate] = useState("");
   const [saving, setSaving] = useState(false);
-  const user = JSON.parse(localStorage.getItem("pmos_user") || "null");
+  
+  const canEdit = me?.role === "admin" || me?.role === "team_lead" || me?.staff_type?.permissions?.includes("edit");
+  const canComment = me?.role === "admin" || me?.role === "team_lead" || me?.staff_type?.permissions?.includes("comment");
+  const canChangeStatus = me?.role === "admin" || me?.role === "team_lead" || me?.staff_type?.permissions?.includes("change_status");
 
   useEffect(() => {
     if (ticket) {
@@ -174,6 +177,7 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
 
   const save = async () => {
     if (!ticket) return;
+    if (!canEdit) { toast.error("No permission to edit"); return; }
     setSaving(true);
     try {
       const dueDateIso = dueDate ? new Date(dueDate + 'T00:00:00.000Z').toISOString() : null;
@@ -249,12 +253,12 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
               {completedAt ? (
                 <>
                   <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>Completed {fmtDate(completedAt)}</span>
-                  <button className="pmos-btn sm" onClick={reopen}>Reopen</button>
+                  {canChangeStatus && <button className="pmos-btn sm" onClick={reopen}>Reopen</button>}
                 </>
               ) : (
                 <>
                   <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>In progress</span>
-                  <button className="pmos-btn primary sm" onClick={markComplete}>Mark complete</button>
+                  {canChangeStatus && <button className="pmos-btn primary sm" onClick={markComplete}>Mark complete</button>}
                 </>
               )}
             </div>
@@ -320,29 +324,35 @@ function TicketDrawer({ ticket, pipeline, users, onClose, onDeleted }: {
                   ) : (
                     <div className="txt">
                       {n.text}
-                      <button className="pmos-btn sm" style={{ marginLeft: 8 }} onClick={() => { setEditingNoteId(n.id); setEditingNoteText(n.text); }}>Edit</button>
-                      <button className="pmos-btn sm" style={{ marginLeft: 4 }} onClick={() => deleteNote(n.id)}>Delete</button>
+                      {canComment && n.author === me?.display_name && (
+                        <>
+                          <button className="pmos-btn sm" style={{ marginLeft: 8 }} onClick={() => { setEditingNoteId(n.id); setEditingNoteText(n.text); }}>Edit</button>
+                          <button className="pmos-btn sm" style={{ marginLeft: 4 }} onClick={() => deleteNote(n.id)}>Delete</button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
               ))}
             </div>
-            <div className="pmos-note-form">
-              <textarea
-                placeholder="Add a note…"
-                value={noteText}
-                onChange={e => setNoteText(e.target.value)}
-                style={{ width: "100%", fontSize: 13, padding: "7px 9px", border: "1px solid var(--line)", borderRadius: 6, background: "var(--bg)" }}
-              />
-              <button className="pmos-btn primary sm" onClick={addNote}>Add note</button>
-            </div>
+            {canComment && (
+              <div className="pmos-note-form">
+                <textarea
+                  placeholder="Add a note…"
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  style={{ width: "100%", fontSize: 13, padding: "7px 9px", border: "1px solid var(--line)", borderRadius: 6, background: "var(--bg)" }}
+                />
+                <button className="pmos-btn primary sm" onClick={addNote}>Add note</button>
+              </div>
+            )}
           </div>
         )}
 
         <div className="pmos-drawer-foot">
-          <button className="pmos-btn ghost-danger" onClick={deleteTicket}>Delete ticket</button>
-          <span className="mono" style={{ fontSize: 11, color: "var(--ink-soft)" }}>{age}d old</span>
-          <button className="pmos-btn primary" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</button>
+          {me?.role === "admin" && <button className="pmos-btn ghost-danger" onClick={deleteTicket}>Delete ticket</button>}
+          <span className="mono" style={{ fontSize: 11, color: "var(--ink-soft)", marginLeft: "auto" }}>{age}d old</span>
+          {canEdit && <button className="pmos-btn primary" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</button>}
         </div>
       </div>
     </>
@@ -502,9 +512,9 @@ export const Board: React.FC = () => {
   const [showActivity, setShowActivity] = useState(false);
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [newTicketStage, setNewTicketStage] = useState(0);
-  const [user, setUser] = useState<any>(null);
   const [pipelineCounts, setPipelineCounts] = useState<Record<string, number>>({});
 
+  const { data: me } = useApi.useMe();
   const { data: pipelines = [] } = usePipelines();
   const { data: tickets = [], isLoading: ticketsLoading } = useTickets(activePipelineId, filterMine);
 
@@ -547,12 +557,7 @@ export const Board: React.FC = () => {
   // Auth guard
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) { navigate("/login"); return; }
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      setUser(payload);
-      localStorage.setItem("pmos_user", JSON.stringify(payload));
-    } catch { navigate("/login"); }
+    if (!token) navigate("/login");
   }, [navigate]);
 
   useEffect(() => {
@@ -575,6 +580,12 @@ export const Board: React.FC = () => {
   };
 
   const handleDragEnd = async (result: DropResult) => {
+    const canChangeStatus = me?.role === "admin" || me?.role === "team_lead" || me?.staff_type?.permissions?.includes("change_status");
+    if (!canChangeStatus) {
+      toast.error("You don't have permission to change ticket status.");
+      return;
+    }
+
     if (!result.destination || !activePipeline) return;
     const sourceStage = parseInt(result.source.droppableId, 10);
     const destStage = parseInt(result.destination.droppableId, 10);
@@ -601,8 +612,8 @@ export const Board: React.FC = () => {
   const tagOpts = activePipeline ? (activePipeline.tag_field as any)?.options ?? [] : [];
   const slaNoteText = tagOpts.map((o: any) => `${o.name} ${o.slaDays}d`).join(' · ');
 
-  const visibleTickets = filterMine && user
-    ? tickets.filter(t => t.assigned_to === user.display_name)
+  const visibleTickets = filterMine && me
+    ? tickets.filter(t => t.assigned_to === me.display_name)
     : tickets;
 
   const completedTickets = tickets.filter(t => t.completed_at);
@@ -616,30 +627,31 @@ export const Board: React.FC = () => {
     return slaOverdue || dueOverdue;
   }).length;
 
-  if (!user) return null;
+  if (!me) return null;
 
-  const sw = avatarSwatch(user.display_name);
+  const sw = avatarSwatch(me.display_name);
+  const canCreate = me?.role === "admin" || me?.role === "team_lead" || me?.staff_type?.permissions?.includes("create");
 
   return (
     <div id="pmos-root">
       {/* ── Top bar ── */}
       <div className="pmos-topbar">
         <div className="pmos-title-row">
-          <div className="pmos-title">PMOS Pipeline Board</div>
+          <div className="pmos-title">AB Investment Groups</div>
           <div className="pmos-right-cluster">
             <div className="pmos-actions">
               <button className="pmos-btn" onClick={() => setShowActivity(true)}>Activity</button>
-              {user.role === "admin" && (
+              {me.role === "admin" && (
                 <button className="pmos-btn" onClick={() => navigate("/admin")}>Admin settings</button>
               )}
-              <button className="pmos-btn primary" onClick={() => { setNewTicketStage(0); setShowNewTicket(true); }}>+ New ticket</button>
+              {canCreate && <button className="pmos-btn primary" onClick={() => { setNewTicketStage(0); setShowNewTicket(true); }}>+ New ticket</button>}
             </div>
             <div className="pmos-user-pill">
               <span className="pmos-avatar" style={{ width: 26, height: 26, fontSize: 11, background: sw.color }}>
-                {initials(user.display_name)}
+                {initials(me.display_name)}
               </span>
-              <span className="name">{user.display_name}</span>
-              <span className={`pmos-role-badge ${user.role}`}>{user.role}</span>
+              <span className="name">{me.display_name}</span>
+              <span className={`pmos-role-badge ${me.role}`}>{me.role}</span>
             </div>
             <button className="pmos-btn sm" onClick={logout}>Log out</button>
           </div>
@@ -711,7 +723,10 @@ export const Board: React.FC = () => {
                     stageIndex={i}
                     tickets={visibleTickets.filter(t => t.stage_index === i && !t.completed_at)}
                     onOpen={setOpenTicket}
-                    onAddTicket={() => { setNewTicketStage(i); setShowNewTicket(true); }}
+                    onAddTicket={() => { 
+                      if (!canCreate) { toast.error("No permission to create tickets"); return; }
+                      setNewTicketStage(i); setShowNewTicket(true); 
+                    }}
                   />
                 ))}
               </div>
@@ -754,6 +769,7 @@ export const Board: React.FC = () => {
         ticket={openTicket}
         pipeline={activePipeline}
         users={users}
+        me={me}
         onClose={() => setOpenTicket(null)}
         onDeleted={handleTicketDeleted}
       />

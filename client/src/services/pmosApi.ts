@@ -5,6 +5,7 @@ import {
   Note, CreateNoteRequest,
   User, CreateUserRequest, UpdateUserRequest,
   ActivityItem,
+  StaffType, Team, TicketCategory
 } from "../types/pmos";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1";
@@ -44,6 +45,22 @@ export const pmosApi = {
     pmosApi.request<User>(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteUser: (id: string) =>
     pmosApi.request<void>(`/admin/users/${id}`, { method: "DELETE" }),
+
+  getMe: () => pmosApi.request<User>("/client/users/me"),
+
+  getStaffTypes: () => pmosApi.request<StaffType[]>("/admin/staff-types"),
+  createStaffType: (data: any) => pmosApi.request<StaffType>("/admin/staff-types", { method: "POST", body: JSON.stringify(data) }),
+  updateStaffType: (id: string, data: any) => pmosApi.request<StaffType>(`/admin/staff-types/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteStaffType: (id: string) => pmosApi.request<void>(`/admin/staff-types/${id}`, { method: "DELETE" }),
+
+  getTeams: () => pmosApi.request<Team[]>("/admin/teams"),
+  createTeam: (data: any) => pmosApi.request<Team>("/admin/teams", { method: "POST", body: JSON.stringify(data) }),
+  updateTeam: (id: string, data: any) => pmosApi.request<Team>(`/admin/teams/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteTeam: (id: string) => pmosApi.request<void>(`/admin/teams/${id}`, { method: "DELETE" }),
+
+  getTicketCategories: () => pmosApi.request<TicketCategory[]>("/admin/ticket-categories"),
+  createTicketCategory: (data: any) => pmosApi.request<TicketCategory>("/admin/ticket-categories", { method: "POST", body: JSON.stringify(data) }),
+  deleteTicketCategory: (id: string) => pmosApi.request<void>(`/admin/ticket-categories/${id}`, { method: "DELETE" }),
 
   getPipelines: () => pmosApi.request<Pipeline[]>("/client/pipelines"),
   getPipeline: (id: string) => pmosApi.request<Pipeline>(`/client/pipelines/${id}`),

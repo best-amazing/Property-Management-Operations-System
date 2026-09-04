@@ -8,14 +8,44 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  username      String   @unique
+  id            String    @id @default(cuid())
+  username      String    @unique
   display_name  String
   password_hash String
-  role          String   @default("staff") // "admin" | "staff"
-  created_at    DateTime @default(now())
+  role          String    @default("staff") // "admin" | "team_lead" | "staff"
+  staff_type_id String?
+  staff_type    StaffType? @relation(fields: [staff_type_id], references: [id])
+  team_id       String?
+  team          Team?     @relation("TeamMembers", fields: [team_id], references: [id])
+  led_teams     Team[]    @relation("TeamLead")
+  created_at    DateTime  @default(now())
 
   pending_logins PendingLogin[]
+}
+
+model TicketCategory {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  created_at DateTime @default(now())
+}
+
+model StaffType {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  permissions         Json     // array of permissions
+  allowed_categories  Json     // array of TicketCategory IDs
+  created_at          DateTime @default(now())
+  users               User[]
+}
+
+model Team {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  lead_id    String?
+  lead       User?    @relation("TeamLead", fields: [lead_id], references: [id])
+  members    User[]   @relation("TeamMembers")
+  tickets    Ticket[]
+  created_at DateTime @default(now())
 }
 
 model Pipeline {
@@ -47,6 +77,9 @@ model Ticket {
   stage_entered_at DateTime @default(now())
   completed_at     DateTime?
   due_date         DateTime?
+  team_id          String?
+  team             Team?    @relation(fields: [team_id], references: [id])
+  priority         String?
 
   pipeline_id      String
   pipeline         Pipeline @relation(fields: [pipeline_id], references: [id])

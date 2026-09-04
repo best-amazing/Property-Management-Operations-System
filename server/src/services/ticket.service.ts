@@ -4,12 +4,48 @@ import { notifyTicketAssigned, notifyTicketStatusUpdated, resolveAssigneeEmail }
 const prisma = new PrismaClient();
 
 export const ticketService = {
-  findAllByPipeline: (pipelineId: string, assignedTo?: string) => {
+  findAllByPipeline: async (pipelineId: string, user?: any, explicitAssignedTo?: string) => {
     const where: any = { pipeline_id: pipelineId };
-    if (assignedTo) {
-      where.assigned_to = assignedTo;
+    
+    if (explicitAssignedTo) {
+      where.assigned_to = explicitAssignedTo;
     }
-    return prisma.ticket.findMany({ where });
+    
+    if (user) {
+      if (user.role === "team_lead") {
+        if (!explicitAssignedTo) {
+          where.OR = [
+            { assigned_to: user.display_name },
+            { team_id: user.team_id }
+          ];
+        }
+      } else if (user.role === "staff") {
+        const staffType = user.staff_type_id ? await prisma.staffType.findUnique({ where: { id: user.staff_type_id } }) : null;
+        const allowedCategories = (staffType?.allowed_categories as string[]) || [];
+        
+        if (!explicitAssignedTo) {
+          where.OR = [
+            { assigned_to: user.display_name }
+          ];
+          
+          if (allowedCategories.length > 0) {
+            const categoryNames = await prisma.ticketCategory.findMany({
+              where: { id: { in: allowedCategories } },
+              select: { name: true }
+            });
+            const names = categoryNames.map(c => c.name);
+            if (names.length > 0) {
+              where.OR.push({ category: { in: names } });
+            }
+          }
+        } else {
+           // If they requested explicitAssignedTo, they must also have access to the category if it's not assigned to them (which it is, so it's fine). 
+           // But wait, if they request their own tickets, the condition assigned_to = user.display_name is already enforced by explicitAssignedTo.
+        }
+      }
+    }
+    
+    return prisma.ticket.findMany({ where, include: { team: { select: { id: true, name: true } } } });
   },
   findById: (id: string) => prisma.ticket.findUnique({ where: { id } }),
   create: async (data: any) => {

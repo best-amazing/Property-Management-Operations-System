@@ -65,7 +65,7 @@ export const Login: React.FC = () => {
   return (
     <div className="pmos-login-wrap">
       <div className="pmos-login-card">
-        <div className="pmos-login-stamp">PMOS</div>
+        <div className="pmos-login-stamp">AB Investment Groups</div>
         <h2>Pipeline Board</h2>
 
         {!loginSessionToken ? (

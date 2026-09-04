@@ -6,6 +6,10 @@ export const QUERY_KEYS = {
   tickets: (pipelineId: string, mine: boolean) => ["tickets", pipelineId, mine] as const,
   users: ["users"] as const,
   activity: ["activity"] as const,
+  me: ["me"] as const,
+  staffTypes: ["staffTypes"] as const,
+  teams: ["teams"] as const,
+  ticketCategories: ["ticketCategories"] as const,
 };
 
 export function usePipelines() {
@@ -29,6 +33,38 @@ export function useUsers() {
   return useQuery({
     queryKey: QUERY_KEYS.users,
     queryFn: pmosApi.getUsers,
+  });
+}
+
+export function useMe() {
+  return useQuery({
+    queryKey: QUERY_KEYS.me,
+    queryFn: pmosApi.getMe,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useStaffTypes() {
+  return useQuery({
+    queryKey: QUERY_KEYS.staffTypes,
+    queryFn: pmosApi.getStaffTypes,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useTeams() {
+  return useQuery({
+    queryKey: QUERY_KEYS.teams,
+    queryFn: pmosApi.getTeams,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useTicketCategories() {
+  return useQuery({
+    queryKey: QUERY_KEYS.ticketCategories,
+    queryFn: pmosApi.getTicketCategories,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

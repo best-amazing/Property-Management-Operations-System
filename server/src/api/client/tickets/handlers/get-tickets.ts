@@ -6,12 +6,12 @@ export const getTicketsHandler = async (req: Request, res: Response): Promise<vo
     const pipelineId = req.params.pipelineId as string;
     const { mine } = req.query;
     
-    let assignedTo = undefined;
+    let explicitAssignedTo = undefined;
     if (mine === "true" && (req as any).user) {
-      assignedTo = (req as any).user.display_name;
+      explicitAssignedTo = (req as any).user.display_name;
     }
 
-    const tickets = await ticketService.findAllByPipeline(pipelineId, assignedTo);
+    const tickets = await ticketService.findAllByPipeline(pipelineId, (req as any).user, explicitAssignedTo);
     res.json(tickets);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
