@@ -132,9 +132,10 @@ async function main() {
     { username: "amazingpropertiesusa1@gmail.com",  display_name: "admin", password: adminPassword,  role: "admin", staff_type_id: null },
     { username: "priya",  display_name: "Priya Shah",  password: "priya123",  role: "staff", staff_type_id: pmStaffType.id },
     { username: "jordan", display_name: "Jordan Lee",  password: "jordan123", role: "staff", staff_type_id: pmStaffType.id },
-    { username: "ephraimedy@gmail.com", display_name: "Ephraim", password: "Ed1d1ongeph@", role: "staff", staff_type_id: pmStaffType.id },
-    { username: "saintsidus@gmail.com", display_name: "Saintsidus", password: "Ed1d1ongeph@", role: "admin", staff_type_id: null },
     { username: "hunter", display_name: "Hunter Blake", password: "hunter123", role: "staff", staff_type_id: acqStaffType.id },
+    { username: "ephraimedy@gmail.com", display_name: "Ephraim Admin", password: "Ed1d1ongeph@", role: "admin", staff_type_id: null },
+    { username: "saintsidus@gmail.com", display_name: "Saintsidus Staff", password: "Ed1d1ongeph@", role: "staff", staff_type_id: pmStaffType.id },
+    { username: "jeffephraim8@gmail.com", display_name: "Jeff Acq", password: "Ed1d1ongeph@", role: "staff", staff_type_id: acqStaffType.id },
   ];
 
   for (const u of usersData) {

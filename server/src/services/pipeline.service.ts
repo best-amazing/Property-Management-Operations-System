@@ -15,18 +15,29 @@ export const pipelineService = {
       include: { department: true },
     }),
 
-  create: (data: any) =>
-    prisma.pipeline.create({
-      data,
+  create: (data: any) => {
+    const { department_id, ...rest } = data;
+    return prisma.pipeline.create({
+      data: {
+        ...rest,
+        department: { connect: { id: department_id } }
+      },
       include: { department: true },
-    }),
+    });
+  },
 
-  update: (id: string, data: any) =>
-    prisma.pipeline.update({
+  update: (id: string, data: any) => {
+    const { department_id, ...rest } = data;
+    const updateData: any = { ...rest };
+    if (department_id) {
+      updateData.department = { connect: { id: department_id } };
+    }
+    return prisma.pipeline.update({
       where: { id },
-      data,
+      data: updateData,
       include: { department: true },
-    }),
+    });
+  },
 
   delete: (id: string) => prisma.pipeline.delete({ where: { id } }),
 };
