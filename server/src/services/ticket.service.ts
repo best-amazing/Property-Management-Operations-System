@@ -21,26 +21,26 @@ export const ticketService = {
         }
       } else if (user.role === "staff") {
         const staffType = user.staff_type_id ? await prisma.staffType.findUnique({ where: { id: user.staff_type_id } }) : null;
-        const allowedCategories = (staffType?.allowed_categories as string[]) || [];
+        const allowedPipelines = (staffType?.allowed_pipelines as string[]) || [];
+        const allowedDepts = (staffType?.allowed_departments as string[]) || [];
         
         if (!explicitAssignedTo) {
+          // By default staff only see their own tickets
           where.OR = [
             { assigned_to: user.display_name }
           ];
           
-          if (allowedCategories.length > 0) {
-            const categoryNames = await prisma.ticketCategory.findMany({
-              where: { id: { in: allowedCategories } },
-              select: { name: true }
-            });
-            const names = categoryNames.map(c => c.name);
-            if (names.length > 0) {
-              where.OR.push({ category: { in: names } });
+          // But if they have access to the pipeline (directly or via dept), they can see all tickets in it
+          if (allowedPipelines.length > 0 || allowedDepts.length > 0) {
+            const pipeline = await prisma.pipeline.findUnique({ where: { id: pipelineId } });
+            if (pipeline) {
+              const hasAccess = allowedPipelines.includes(pipeline.id) || allowedDepts.includes(pipeline.department_id);
+              if (hasAccess) {
+                // Remove the OR filter so they see everything in this pipeline
+                delete where.OR;
+              }
             }
           }
-        } else {
-           // If they requested explicitAssignedTo, they must also have access to the category if it's not assigned to them (which it is, so it's fine). 
-           // But wait, if they request their own tickets, the condition assigned_to = user.display_name is already enforced by explicitAssignedTo.
         }
       }
     }

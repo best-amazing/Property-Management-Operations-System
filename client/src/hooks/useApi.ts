@@ -9,7 +9,7 @@ export const QUERY_KEYS = {
   me: ["me"] as const,
   staffTypes: ["staffTypes"] as const,
   teams: ["teams"] as const,
-  ticketCategories: ["ticketCategories"] as const,
+  departments: ["departments"] as const,
 };
 
 export function usePipelines() {
@@ -60,10 +60,10 @@ export function useTeams() {
   });
 }
 
-export function useTicketCategories() {
+export function useDepartments() {
   return useQuery({
-    queryKey: QUERY_KEYS.ticketCategories,
-    queryFn: pmosApi.getTicketCategories,
+    queryKey: QUERY_KEYS.departments,
+    queryFn: pmosApi.getDepartments,
     staleTime: 5 * 60 * 1000,
   });
 }

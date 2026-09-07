@@ -8,32 +8,34 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  username      String    @unique
+  id            String     @id @default(cuid())
+  username      String     @unique
   display_name  String
   password_hash String
-  role          String    @default("staff") // "admin" | "team_lead" | "staff"
+  role          String     @default("staff") // "admin" | "team_lead" | "staff"
   staff_type_id String?
   staff_type    StaffType? @relation(fields: [staff_type_id], references: [id])
   team_id       String?
-  team          Team?     @relation("TeamMembers", fields: [team_id], references: [id])
-  led_teams     Team[]    @relation("TeamLead")
-  created_at    DateTime  @default(now())
+  team          Team?      @relation("TeamMembers", fields: [team_id], references: [id])
+  led_teams     Team[]     @relation("TeamLead")
+  created_at    DateTime   @default(now())
 
   pending_logins PendingLogin[]
 }
 
-model TicketCategory {
-  id         String   @id @default(cuid())
-  name       String   @unique
-  created_at DateTime @default(now())
+model Department {
+  id         String     @id @default(cuid())
+  name       String     @unique
+  created_at DateTime   @default(now())
+  pipelines  Pipeline[]
 }
 
 model StaffType {
   id                  String   @id @default(cuid())
   name                String   @unique
-  permissions         Json     // array of permissions
-  allowed_categories  Json     // array of TicketCategory IDs
+  permissions         Json // array of permissions
+  allowed_departments Json // array of Department IDs
+  allowed_pipelines   Json // array of Pipeline IDs
   created_at          DateTime @default(now())
   users               User[]
 }
@@ -49,42 +51,42 @@ model Team {
 }
 
 model Pipeline {
-  id                String   @id @default(cuid())
+  id                String     @id @default(cuid())
   label             String
   code              String
-  stages            Json     // array of stage names
-  tag_field         Json     // options and SLA days
-  category_field    Json     // options
-  default_checklist Json     // array of checklist items
+  stages            Json // array of stage names
+  tag_field         Json // options and SLA days
+  department_id     String
+  department        Department @relation(fields: [department_id], references: [id])
+  default_checklist Json // array of checklist items
   created_by        String
-  created_at        DateTime @default(now())
+  created_at        DateTime   @default(now())
 
-  tickets           Ticket[]
+  tickets Ticket[]
 }
 
 model Ticket {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   title            String
   property         String?
   unit             String?
   tag              String?
-  category         String?
   assigned_to      String?
-  stage_index      Int      @default(0)
-  checklist        Json     // current checklist state
-  history          Json     // stage transition history
-  created_at       DateTime @default(now())
-  stage_entered_at DateTime @default(now())
+  stage_index      Int       @default(0)
+  checklist        Json // current checklist state
+  history          Json // stage transition history
+  created_at       DateTime  @default(now())
+  stage_entered_at DateTime  @default(now())
   completed_at     DateTime?
   due_date         DateTime?
   team_id          String?
-  team             Team?    @relation(fields: [team_id], references: [id])
+  team             Team?     @relation(fields: [team_id], references: [id])
   priority         String?
 
-  pipeline_id      String
-  pipeline         Pipeline @relation(fields: [pipeline_id], references: [id])
-  
-  notes            Note[]
+  pipeline_id String
+  pipeline    Pipeline @relation(fields: [pipeline_id], references: [id])
+
+  notes Note[]
 }
 
 model Note {
@@ -93,19 +95,19 @@ model Note {
   author     String
   created_at DateTime @default(now())
 
-  ticket_id  String
-  ticket     Ticket   @relation(fields: [ticket_id], references: [id])
+  ticket_id String
+  ticket    Ticket @relation(fields: [ticket_id], references: [id])
 }
 
 model PendingLogin {
-  id           String   @id @default(uuid())
-  token        String   @unique
-  userId       String
-  codeHash     String   // bcrypt hash of the 6-digit code
-  expiresAt    DateTime
-  attempts     Int      @default(0)
-  used         Boolean  @default(false)
-  createdAt    DateTime @default(now())
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  codeHash  String // bcrypt hash of the 6-digit code
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
 
-  user         User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 }

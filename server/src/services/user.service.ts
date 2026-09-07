@@ -4,12 +4,13 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 export const userService = {
+  findById: (id: string, include?: any) => prisma.user.findUnique({ where: { id }, include }),
   findByUsername: (username: string) => prisma.user.findUnique({ where: { username } }),
   findAll: () => prisma.user.findMany({
     select: { 
       id: true, username: true, display_name: true, role: true, created_at: true,
       staff_type_id: true, team_id: true,
-      staff_type: { select: { id: true, name: true, permissions: true, allowed_categories: true } },
+      staff_type: { select: { id: true, name: true, permissions: true, allowed_departments: true, allowed_pipelines: true } },
       team: { select: { id: true, name: true } }
     },
   }),

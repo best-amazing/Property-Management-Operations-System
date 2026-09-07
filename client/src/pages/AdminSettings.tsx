@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { pmosApi } from "../services/pmosApi";
-import { User, Pipeline } from "../types/pmos";
+import { User, Pipeline, Department } from "../types/pmos";
 import { avatarSwatch, initials } from "../utils/ui";
-import { usePipelines, useUsers, useStaffTypes, useTeams, useTicketCategories, QUERY_KEYS } from "../hooks/useApi";
+import { usePipelines, useUsers, useStaffTypes, useTeams, useDepartments, QUERY_KEYS } from "../hooks/useApi";
 
 const PALETTE = [
   { name: "Rust", color: "#B23A2E", soft: "#F6DEDA" },
@@ -33,26 +33,28 @@ function TagRow({ name, swatch, sla, onChange, onRemove }: {
   );
 }
 
+type AdminTab = "team" | "services" | "departments" | "staffTypes" | "teams";
+
 export const AdminSettings: React.FC = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  
+
   const { data: users = [], isLoading: usersLoading, isError: usersError } = useUsers();
   const { data: pipelines = [], isLoading: pipelinesLoading } = usePipelines();
   const { data: staffTypes = [] } = useStaffTypes();
   const { data: teams = [] } = useTeams();
-  const { data: categories = [] } = useTicketCategories();
+  const { data: departments = [] } = useDepartments();
 
-  const [activeTab, setActiveTab] = useState<"team" | "services" | "categories" | "staffTypes" | "teams">("team");
+  const [activeTab, setActiveTab] = useState<AdminTab>("team");
 
-  // Team form state
+  // ── User form state ────────────────────────────────────────────────────────
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
   const [newRole, setNewRole] = useState<"admin" | "team_lead" | "staff">("staff");
   const [newStaffTypeId, setNewStaffTypeId] = useState("");
   const [newTeamId, setNewTeamId] = useState("");
-  
+
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editRole, setEditRole] = useState<"admin" | "team_lead" | "staff">("staff");
@@ -60,21 +62,25 @@ export const AdminSettings: React.FC = () => {
   const [editStaffTypeId, setEditStaffTypeId] = useState("");
   const [editTeamId, setEditTeamId] = useState("");
 
-  // Categories
-  const [newCatName, setNewCatName] = useState("");
+  // ── Departments ────────────────────────────────────────────────────────────
+  const [newDeptName, setNewDeptName] = useState("");
+  const [editingDeptId, setEditingDeptId] = useState<string | null>(null);
+  const [editDeptName, setEditDeptName] = useState("");
 
-  // Staff Types
+  // ── Staff Types ───────────────────────────────────────────────────────────
   const [newStaffTypeName, setNewStaffTypeName] = useState("");
   const [newStaffTypePerms, setNewStaffTypePerms] = useState<string[]>([]);
-  const [newStaffTypeCats, setNewStaffTypeCats] = useState<string[]>([]);
+  const [newStaffTypeDepts, setNewStaffTypeDepts] = useState<string[]>([]);
+  const [newStaffTypePipelines, setNewStaffTypePipelines] = useState<string[]>([]);
 
-  // Teams
+  // ── Teams ─────────────────────────────────────────────────────────────────
   const [newTeamName, setNewTeamName] = useState("");
   const [newTeamLeadId, setNewTeamLeadId] = useState("");
 
-  // Services form state
+  // ── Pipeline create state ─────────────────────────────────────────────────
   const [svcName, setSvcName] = useState("");
   const [svcCode, setSvcCode] = useState("");
+  const [svcDeptId, setSvcDeptId] = useState("");
   const [svcStages, setSvcStages] = useState<string[]>(["", "", ""]);
   const [svcTagLabel, setSvcTagLabel] = useState("Priority");
   const [svcTags, setSvcTags] = useState<{ name: string; swatch: string; sla: number }[]>([
@@ -85,10 +91,11 @@ export const AdminSettings: React.FC = () => {
   const [svcCatOptions, setSvcCatOptions] = useState("");
   const [svcChecklist, setSvcChecklist] = useState("");
 
-  // Edit service state
+  // ── Pipeline edit state ───────────────────────────────────────────────────
   const [editingPipelineId, setEditingPipelineId] = useState<string | null>(null);
   const [editSvcName, setEditSvcName] = useState("");
   const [editSvcCode, setEditSvcCode] = useState("");
+  const [editSvcDeptId, setEditSvcDeptId] = useState("");
   const [editSvcStages, setEditSvcStages] = useState<string[]>([]);
   const [editSvcTagLabel, setEditSvcTagLabel] = useState("Priority");
   const [editSvcTags, setEditSvcTags] = useState<{ name: string; swatch: string; sla: number }[]>([]);
@@ -106,10 +113,10 @@ export const AdminSettings: React.FC = () => {
   try { currentRole = JSON.parse(atob(token.split(".")[1])).role; } catch {}
   if (currentRole !== "admin") { navigate("/"); return null; }
 
-  // Team Handlers
+  // ── User handlers ──────────────────────────────────────────────────────────
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    await pmosApi.createUser({ 
+    await pmosApi.createUser({
       username: newUsername, password: newPassword, display_name: newDisplayName, role: newRole,
       staff_type_id: newStaffTypeId || undefined, team_id: newTeamId || undefined
     });
@@ -135,46 +142,74 @@ export const AdminSettings: React.FC = () => {
 
   const saveEdit = async () => {
     if (!editingUserId) return;
-    await pmosApi.updateUser(editingUserId, { 
-      display_name: editName, role: editRole, 
+    await pmosApi.updateUser(editingUserId, {
+      display_name: editName, role: editRole,
       staff_type_id: editStaffTypeId || undefined, team_id: editTeamId || undefined,
-      ...(editPassword ? { password: editPassword } : {}) 
+      ...(editPassword ? { password: editPassword } : {})
     });
     setEditingUserId(null);
     toast.success("Team member updated");
     qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
   };
 
-  // Category Handlers
-  const handleCreateCategory = async (e: React.FormEvent) => {
+  // ── Department handlers ────────────────────────────────────────────────────
+  const handleCreateDept = async (e: React.FormEvent) => {
     e.preventDefault();
-    await pmosApi.createTicketCategory({ name: newCatName });
-    setNewCatName("");
-    toast.success("Category created");
-    qc.invalidateQueries({ queryKey: QUERY_KEYS.ticketCategories });
+    if (!newDeptName.trim()) { toast.error("Department name is required."); return; }
+    await pmosApi.createDepartment({ name: newDeptName.trim() });
+    setNewDeptName("");
+    toast.success("Department created");
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.departments });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.pipelines });
   };
 
-  const handleDeleteCategory = async (id: string) => {
-    if (!confirm("Remove this category?")) return;
-    await pmosApi.deleteTicketCategory(id);
-    qc.invalidateQueries({ queryKey: QUERY_KEYS.ticketCategories });
+  const startEditDept = (dept: Department) => {
+    setEditingDeptId(dept.id);
+    setEditDeptName(dept.name);
   };
 
-  // Staff Type Handlers
+  const saveEditDept = async () => {
+    if (!editingDeptId || !editDeptName.trim()) return;
+    await pmosApi.updateDepartment(editingDeptId, { name: editDeptName.trim() });
+    setEditingDeptId(null);
+    toast.success("Department updated");
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.departments });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.pipelines });
+  };
+
+  const handleDeleteDept = async (id: string) => {
+    if (!confirm("Delete this department? Pipelines assigned to it must be reassigned first.")) return;
+    try {
+      await pmosApi.deleteDepartment(id);
+      toast.success("Department deleted");
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.departments });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.pipelines });
+    } catch (err: any) {
+      toast.error(err.message || "Could not delete department");
+    }
+  };
+
+  // ── Staff Type handlers ────────────────────────────────────────────────────
   const handleCreateStaffType = async (e: React.FormEvent) => {
     e.preventDefault();
-    await pmosApi.createStaffType({ name: newStaffTypeName, permissions: newStaffTypePerms, allowed_categories: newStaffTypeCats });
-    setNewStaffTypeName(""); setNewStaffTypePerms([]); setNewStaffTypeCats([]);
+    await pmosApi.createStaffType({
+      name: newStaffTypeName,
+      permissions: newStaffTypePerms,
+      allowed_departments: newStaffTypeDepts,
+      allowed_pipelines: newStaffTypePipelines,
+    });
+    setNewStaffTypeName(""); setNewStaffTypePerms([]); setNewStaffTypeDepts([]); setNewStaffTypePipelines([]);
     toast.success("Staff type created");
     qc.invalidateQueries({ queryKey: QUERY_KEYS.staffTypes });
   };
+
   const handleDeleteStaffType = async (id: string) => {
     if (!confirm("Remove this staff type?")) return;
     await pmosApi.deleteStaffType(id);
     qc.invalidateQueries({ queryKey: QUERY_KEYS.staffTypes });
   };
 
-  // Team Group Handlers
+  // ── Team Group handlers ───────────────────────────────────────────────────
   const handleCreateTeamGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     await pmosApi.createTeam({ name: newTeamName, lead_id: newTeamLeadId || undefined });
@@ -182,13 +217,14 @@ export const AdminSettings: React.FC = () => {
     toast.success("Team created");
     qc.invalidateQueries({ queryKey: QUERY_KEYS.teams });
   };
+
   const handleDeleteTeamGroup = async (id: string) => {
     if (!confirm("Remove this team?")) return;
     await pmosApi.deleteTeam(id);
     qc.invalidateQueries({ queryKey: QUERY_KEYS.teams });
   };
 
-  // Services Handlers
+  // ── Pipeline create handlers ───────────────────────────────────────────────
   const addStage = () => setSvcStages(prev => [...prev, ""]);
   const removeStage = (i: number) => setSvcStages(prev => prev.filter((_, idx) => idx !== i));
   const updateStage = (i: number, val: string) => setSvcStages(prev => prev.map((s, idx) => idx === i ? val : s));
@@ -200,7 +236,8 @@ export const AdminSettings: React.FC = () => {
 
   const handleCreatePipeline = async () => {
     const stages = svcStages.map(s => s.trim()).filter(Boolean);
-    if (!svcName.trim()) { toast.error("Service name is required."); return; }
+    if (!svcName.trim()) { toast.error("Pipeline name is required."); return; }
+    if (!svcDeptId) { toast.error("Please select a Department."); return; }
     if (stages.length < 2) { toast.error("Add at least 2 stages."); return; }
     const tagOptions = svcTags.filter(t => t.name.trim()).map(t => ({ name: t.name.trim(), swatch: t.swatch, slaDays: t.sla }));
     const finalTagOptions = tagOptions.length ? tagOptions : [{ name: "Standard", swatch: "Pine", slaDays: 5 }];
@@ -212,26 +249,29 @@ export const AdminSettings: React.FC = () => {
       label: svcName.trim(),
       code,
       stages,
+      department_id: svcDeptId,
       tag_field: { label: svcTagLabel.trim() || "Priority", options: finalTagOptions },
       category_field: { label: svcCatLabel.trim() || "Category", options: catOptions.length ? catOptions : ["General"] },
       default_checklist: defaultChecklist,
     });
-    toast.success("Service created");
-    setSvcName(""); setSvcCode(""); setSvcStages(["", "", ""]); setSvcTagLabel("Priority");
+    toast.success("Pipeline created");
+    setSvcName(""); setSvcCode(""); setSvcDeptId(""); setSvcStages(["", "", ""]); setSvcTagLabel("Priority");
     setSvcTags([{ name: "Standard", swatch: "Pine", sla: 5 }, { name: "Rush", swatch: "Amber", sla: 2 }]);
     setSvcCatLabel("Category"); setSvcCatOptions(""); setSvcChecklist("");
     qc.invalidateQueries({ queryKey: QUERY_KEYS.pipelines });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.departments });
   };
 
   const handleDeletePipeline = async (id: string) => {
     const p = pipelines.find(p => p.id === id);
     if (!p) return;
-    if (!confirm(`Delete "${p.label}"? This will also delete all tickets in this service.`)) return;
+    if (!confirm(`Delete "${p.label}"? This will also delete all tickets in this pipeline.`)) return;
     await pmosApi.deletePipeline(id);
     qc.invalidateQueries({ queryKey: QUERY_KEYS.pipelines });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.departments });
   };
 
-  // Edit pipeline handlers
+  // ── Pipeline edit handlers ─────────────────────────────────────────────────
   const addEditStage = () => setEditSvcStages(prev => [...prev, ""]);
   const removeEditStage = (i: number) => setEditSvcStages(prev => prev.filter((_, idx) => idx !== i));
   const updateEditStage = (i: number, val: string) => setEditSvcStages(prev => prev.map((s, idx) => idx === i ? val : s));
@@ -245,6 +285,7 @@ export const AdminSettings: React.FC = () => {
     setEditingPipelineId(p.id);
     setEditSvcName(p.label);
     setEditSvcCode(p.code);
+    setEditSvcDeptId(p.department_id);
     setEditSvcStages(p.stages as string[]);
     setEditSvcTagLabel((p.tag_field as any)?.label ?? "Priority");
     setEditSvcTags(((p.tag_field as any)?.options ?? []).map((o: any) => ({
@@ -258,7 +299,8 @@ export const AdminSettings: React.FC = () => {
   const handleUpdatePipeline = async () => {
     if (!editingPipelineId) return;
     const stages = editSvcStages.map(s => s.trim()).filter(Boolean);
-    if (!editSvcName.trim()) { toast.error("Service name is required."); return; }
+    if (!editSvcName.trim()) { toast.error("Pipeline name is required."); return; }
+    if (!editSvcDeptId) { toast.error("Please select a Department."); return; }
     if (stages.length < 2) { toast.error("Add at least 2 stages."); return; }
     const tagOptions = editSvcTags.filter(t => t.name.trim()).map(t => ({ name: t.name.trim(), swatch: t.swatch, slaDays: t.sla }));
     const finalTagOptions = tagOptions.length ? tagOptions : [{ name: "Standard", swatch: "Pine", slaDays: 5 }];
@@ -269,14 +311,20 @@ export const AdminSettings: React.FC = () => {
       label: editSvcName.trim(),
       code: editSvcCode.trim().toUpperCase(),
       stages,
+      department_id: editSvcDeptId,
       tag_field: { label: editSvcTagLabel.trim() || "Priority", options: finalTagOptions },
       category_field: { label: editSvcCatLabel.trim() || "Category", options: catOptions.length ? catOptions : ["General"] },
       default_checklist: defaultChecklist,
     });
     setEditingPipelineId(null);
-    toast.success("Service updated");
+    toast.success("Pipeline updated");
     qc.invalidateQueries({ queryKey: QUERY_KEYS.pipelines });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.departments });
   };
+
+  // ── Derived: pipelines filtered by selected departments for staff type ──────
+  const pipelinesForDepts = (deptIds: string[]) =>
+    deptIds.length === 0 ? pipelines : pipelines.filter(p => deptIds.includes(p.department_id));
 
   return (
     <div className="pmos-modal-bg show" style={{ position: "fixed", inset: 0, zIndex: 50 }}>
@@ -286,10 +334,11 @@ export const AdminSettings: React.FC = () => {
           <button className={`pmos-seg-btn ${activeTab === "team" ? "active" : ""}`} onClick={() => setActiveTab("team")}>Users</button>
           <button className={`pmos-seg-btn ${activeTab === "teams" ? "active" : ""}`} onClick={() => setActiveTab("teams")}>Teams</button>
           <button className={`pmos-seg-btn ${activeTab === "staffTypes" ? "active" : ""}`} onClick={() => setActiveTab("staffTypes")}>Staff Types</button>
-          <button className={`pmos-seg-btn ${activeTab === "categories" ? "active" : ""}`} onClick={() => setActiveTab("categories")}>Categories</button>
+          <button className={`pmos-seg-btn ${activeTab === "departments" ? "active" : ""}`} onClick={() => setActiveTab("departments")}>Departments</button>
           <button className={`pmos-seg-btn ${activeTab === "services" ? "active" : ""}`} onClick={() => setActiveTab("services")}>Pipelines</button>
         </div>
 
+        {/* ── Users tab ──────────────────────────────────────────────────── */}
         {activeTab === "team" && (
           <div>
             {usersLoading ? (
@@ -304,7 +353,7 @@ export const AdminSettings: React.FC = () => {
                     <div className="grow" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                       <div className="pmos-field" style={{ margin: 0, flex: "1 1 140px" }}><input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Name" /></div>
                       <div className="pmos-field" style={{ margin: 0, width: 100 }}><select value={editRole} onChange={e => setEditRole(e.target.value as any)}><option value="staff">Staff</option><option value="team_lead">Team Lead</option><option value="admin">Admin</option></select></div>
-                      <div className="pmos-field" style={{ margin: 0, width: 120 }}>
+                      <div className="pmos-field" style={{ margin: 0, width: 130 }}>
                         <select value={editStaffTypeId} onChange={e => setEditStaffTypeId(e.target.value)}>
                           <option value="">No Staff Type</option>
                           {staffTypes.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
@@ -324,8 +373,8 @@ export const AdminSettings: React.FC = () => {
                     <div className="grow">
                       <div className="lbl">{u.display_name} <span className={`pmos-role-badge ${u.role}`}>{u.role}</span></div>
                       <div className="sub">
-                        {u.username} 
-                        {u.staff_type && ` • Staff Type: ${u.staff_type.name}`}
+                        {u.username}
+                        {u.staff_type && ` • ${u.staff_type.name}`}
                         {u.team && ` • Team: ${u.team.name}`}
                       </div>
                     </div>
@@ -365,6 +414,7 @@ export const AdminSettings: React.FC = () => {
           </div>
         )}
 
+        {/* ── Teams tab ──────────────────────────────────────────────────── */}
         {activeTab === "teams" && (
           <div>
             {teams.map(t => (
@@ -394,15 +444,38 @@ export const AdminSettings: React.FC = () => {
           </div>
         )}
 
+        {/* ── Staff Types tab ────────────────────────────────────────────── */}
         {activeTab === "staffTypes" && (
           <div>
             {staffTypes.map(st => (
-               <div key={st.id} className="pmos-admin-row">
-                 <div className="grow">
-                   <div className="lbl">{st.name}</div>
-                   <div className="sub">Perms: {st.permissions.join(", ") || "None"} • Cats: {st.allowed_categories.length}</div>
+               <div key={st.id} className="pmos-admin-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+                 <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
+                   <div className="grow">
+                     <div className="lbl">{st.name}</div>
+                     <div className="sub">
+                       Permissions: {(st.permissions as string[]).join(", ") || "None"}
+                     </div>
+                     <div className="sub">
+                       Departments: {
+                         (st.allowed_departments as string[]).length
+                           ? (st.allowed_departments as string[])
+                               .map(id => departments.find(d => d.id === id)?.name || id)
+                               .join(", ")
+                           : "All"
+                       }
+                     </div>
+                     <div className="sub">
+                       Pipelines: {
+                         (st.allowed_pipelines as string[]).length
+                           ? (st.allowed_pipelines as string[])
+                               .map(id => pipelines.find(p => p.id === id)?.label || id)
+                               .join(", ")
+                           : "All within departments"
+                       }
+                     </div>
+                   </div>
+                   <button className="pmos-btn sm ghost-danger" onClick={() => handleDeleteStaffType(st.id)}>Remove</button>
                  </div>
-                 <button className="pmos-btn sm ghost-danger" onClick={() => handleDeleteStaffType(st.id)}>Remove</button>
                </div>
             ))}
             <hr className="pmos-divider" />
@@ -425,55 +498,137 @@ export const AdminSettings: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Department access */}
               <div className="pmos-field">
-                <label>Allowed Categories</label>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", maxHeight: 150, overflowY: "auto", border: "1px solid #ddd", padding: 10, borderRadius: 6 }}>
-                  {categories.map(c => (
-                    <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <input type="checkbox" checked={newStaffTypeCats.includes(c.id)} onChange={e => {
-                        if (e.target.checked) setNewStaffTypeCats([...newStaffTypeCats, c.id]);
-                        else setNewStaffTypeCats(newStaffTypeCats.filter(x => x !== c.id));
-                      }} />
-                      {c.name}
-                    </label>
-                  ))}
+                <label>Allowed Departments <span style={{ fontWeight: 400, color: "var(--ink-soft)", fontSize: 12 }}>(leave empty = all departments)</span></label>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", maxHeight: 120, overflowY: "auto", border: "1px solid #ddd", padding: 10, borderRadius: 6 }}>
+                  {departments.length === 0
+                    ? <span style={{ color: "var(--ink-soft)", fontSize: 13 }}>No departments yet — create one first.</span>
+                    : departments.map(d => (
+                        <label key={d.id} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <input type="checkbox" checked={newStaffTypeDepts.includes(d.id)} onChange={e => {
+                            if (e.target.checked) {
+                              setNewStaffTypeDepts([...newStaffTypeDepts, d.id]);
+                            } else {
+                              setNewStaffTypeDepts(newStaffTypeDepts.filter(x => x !== d.id));
+                              // Also uncheck pipelines that belonged to this dept
+                              const deptPipelineIds = pipelines.filter(p => p.department_id === d.id).map(p => p.id);
+                              setNewStaffTypePipelines(newStaffTypePipelines.filter(x => !deptPipelineIds.includes(x)));
+                            }
+                          }} />
+                          {d.name}
+                        </label>
+                      ))
+                  }
                 </div>
               </div>
+
+              {/* Pipeline access — filtered by selected depts */}
+              <div className="pmos-field">
+                <label>
+                  Allowed Pipelines
+                  <span style={{ fontWeight: 400, color: "var(--ink-soft)", fontSize: 12 }}>
+                    {newStaffTypeDepts.length > 0 ? " (within selected departments)" : " (leave empty = all pipelines)"}
+                  </span>
+                </label>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", maxHeight: 150, overflowY: "auto", border: "1px solid #ddd", padding: 10, borderRadius: 6 }}>
+                  {pipelinesForDepts(newStaffTypeDepts).length === 0
+                    ? <span style={{ color: "var(--ink-soft)", fontSize: 13 }}>No pipelines in selected departments.</span>
+                    : pipelinesForDepts(newStaffTypeDepts).map(p => (
+                        <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <input type="checkbox" checked={newStaffTypePipelines.includes(p.id)} onChange={e => {
+                            if (e.target.checked) setNewStaffTypePipelines([...newStaffTypePipelines, p.id]);
+                            else setNewStaffTypePipelines(newStaffTypePipelines.filter(x => x !== p.id));
+                          }} />
+                          <span>
+                            {p.label}
+                            <span style={{ color: "var(--ink-soft)", fontSize: 11, marginLeft: 4 }}>
+                              {departments.find(d => d.id === p.department_id)?.name}
+                            </span>
+                          </span>
+                        </label>
+                      ))
+                  }
+                </div>
+              </div>
+
               <button type="submit" className="pmos-btn primary">Create Staff Type</button>
             </form>
           </div>
         )}
 
-        {activeTab === "categories" && (
+        {/* ── Departments tab ────────────────────────────────────────────── */}
+        {activeTab === "departments" && (
           <div>
-            {categories.map(c => (
-               <div key={c.id} className="pmos-admin-row">
-                 <div className="grow"><div className="lbl">{c.name}</div></div>
-                 <button className="pmos-btn sm ghost-danger" onClick={() => handleDeleteCategory(c.id)}>Remove</button>
-               </div>
-            ))}
+            {departments.map(dept => {
+              const deptPipelines = pipelines.filter(p => p.department_id === dept.id);
+              const isEditing = editingDeptId === dept.id;
+              return (
+                <div key={dept.id} className="pmos-admin-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+                  <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
+                    {isEditing ? (
+                      <div style={{ display: "flex", gap: 8, flex: 1, alignItems: "center" }}>
+                        <div className="pmos-field" style={{ margin: 0, flex: 1 }}>
+                          <input value={editDeptName} onChange={e => setEditDeptName(e.target.value)} placeholder="Department name" />
+                        </div>
+                        <button className="pmos-btn sm primary" onClick={saveEditDept}>Save</button>
+                        <button className="pmos-btn sm" onClick={() => setEditingDeptId(null)}>Cancel</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grow">
+                          <div className="lbl">{dept.name}</div>
+                          <div className="sub">{deptPipelines.length} pipeline{deptPipelines.length !== 1 ? "s" : ""}</div>
+                        </div>
+                        <button className="pmos-btn sm" style={{ marginRight: 6 }} onClick={() => startEditDept(dept)}>Edit</button>
+                        <button className="pmos-btn sm ghost-danger" onClick={() => handleDeleteDept(dept.id)}>Delete</button>
+                      </>
+                    )}
+                  </div>
+                  {!isEditing && deptPipelines.length > 0 && (
+                    <div style={{ paddingLeft: 12, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {deptPipelines.map(p => (
+                        <span key={p.id} className="pmos-code-badge" style={{ fontSize: 11 }}>
+                          {p.code} · {p.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             <hr className="pmos-divider" />
-            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Create Global Category</div>
-            <form onSubmit={handleCreateCategory} className="pmos-row2">
-              <div className="pmos-field"><input placeholder="Category Name" value={newCatName} onChange={e => setNewCatName(e.target.value)} /></div>
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Create Department</div>
+            <form onSubmit={handleCreateDept} className="pmos-row2">
+              <div className="pmos-field"><input placeholder="e.g. Acquisition Department" value={newDeptName} onChange={e => setNewDeptName(e.target.value)} /></div>
               <button type="submit" className="pmos-btn primary" style={{ marginTop: 0 }}>Create</button>
             </form>
           </div>
         )}
 
+        {/* ── Pipelines tab ─────────────────────────────────────────────── */}
         {activeTab === "services" && (
           <div>
             {pipelinesLoading ? (
-              <div className="pmos-note-empty" style={{ textAlign: "center", padding: 24 }}>Loading services…</div>
+              <div className="pmos-note-empty" style={{ textAlign: "center", padding: 24 }}>Loading pipelines…</div>
             ) : pipelines.map(p => {
               const isEditing = editingPipelineId === p.id;
+              const deptName = p.department?.name ?? departments.find(d => d.id === p.department_id)?.name ?? "—";
               return (
                 <div key={p.id} className="pmos-admin-row" style={{ flexWrap: "wrap" }}>
                   {isEditing ? (
                     <div className="grow" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       <div className="pmos-row2">
-                        <div className="pmos-field" style={{ margin: 0 }}><label>Service name</label><input value={editSvcName} onChange={e => setEditSvcName(e.target.value)} /></div>
+                        <div className="pmos-field" style={{ margin: 0 }}><label>Pipeline name</label><input value={editSvcName} onChange={e => setEditSvcName(e.target.value)} /></div>
                         <div className="pmos-field" style={{ margin: 0, maxWidth: 90 }}><label>Code</label><input maxLength={3} value={editSvcCode} onChange={e => setEditSvcCode(e.target.value)} /></div>
+                        <div className="pmos-field" style={{ margin: 0, flex: "1 1 160px" }}>
+                          <label>Department</label>
+                          <select value={editSvcDeptId} onChange={e => setEditSvcDeptId(e.target.value)}>
+                            <option value="">— Select Department —</option>
+                            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                          </select>
+                        </div>
                       </div>
                       <div className="pmos-field" style={{ margin: 0 }}>
                         <label>Stages</label>
@@ -514,7 +669,7 @@ export const AdminSettings: React.FC = () => {
                       <span className="pmos-code-badge">{p.code}</span>
                       <div className="grow">
                         <div className="lbl">{p.label}</div>
-                        <div className="sub">{(p.stages as string[]).length} stages</div>
+                        <div className="sub">{(p.stages as string[]).length} stages • {deptName}</div>
                       </div>
                       <button className="pmos-btn sm" onClick={() => startEditPipeline(p)} style={{ marginRight: 6 }}>Edit</button>
                       <button className="pmos-btn sm ghost-danger" onClick={() => handleDeletePipeline(p.id)}>Delete</button>
@@ -524,11 +679,23 @@ export const AdminSettings: React.FC = () => {
               );
             })}
             <hr className="pmos-divider" />
-            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Add a new service</div>
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Add a new pipeline</div>
             <div className="pmos-row2">
-              <div className="pmos-field"><label>Service name</label><input placeholder="e.g. Renovations" value={svcName} onChange={e => setSvcName(e.target.value)} /></div>
+              <div className="pmos-field"><label>Pipeline name</label><input placeholder="e.g. Maintenance & Vendors" value={svcName} onChange={e => setSvcName(e.target.value)} /></div>
               <div className="pmos-field" style={{ maxWidth: 90 }}><label>Code</label><input maxLength={3} placeholder="auto" value={svcCode} onChange={e => setSvcCode(e.target.value)} /></div>
+              <div className="pmos-field" style={{ flex: "1 1 180px" }}>
+                <label>Department <span style={{ color: "#c00" }}>*</span></label>
+                <select value={svcDeptId} onChange={e => setSvcDeptId(e.target.value)}>
+                  <option value="">— Select Department —</option>
+                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </div>
             </div>
+            {departments.length === 0 && (
+              <div style={{ background: "#fff3cd", border: "1px solid #ffc107", borderRadius: 6, padding: "8px 12px", fontSize: 13, marginBottom: 12 }}>
+                ⚠ No departments exist yet. Go to the <button className="pmos-btn sm" onClick={() => setActiveTab("departments")} style={{ display: "inline", padding: "2px 8px" }}>Departments</button> tab to create one first.
+              </div>
+            )}
             <div className="pmos-field">
               <label>Stages (in order — the last stage marks a ticket complete)</label>
               <div className="pmos-dyn-rows">
@@ -559,7 +726,7 @@ export const AdminSettings: React.FC = () => {
             </div>
             <div className="pmos-field"><label>Default checklist (one item per line)</label><textarea placeholder="One checklist item per line" value={svcChecklist} onChange={e => setSvcChecklist(e.target.value)} /></div>
             <div className="pmos-modal-actions">
-              <button className="pmos-btn primary" onClick={handleCreatePipeline}>Create service</button>
+              <button className="pmos-btn primary" onClick={handleCreatePipeline}>Create pipeline</button>
             </div>
           </div>
         )}
@@ -568,10 +735,10 @@ export const AdminSettings: React.FC = () => {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div>
             <div style={{ fontWeight: 600, fontSize: 13 }}>Danger zone</div>
-            <div style={{ fontSize: 12, color: "#888" }}>This only affects tickets — your team and services stay as configured.</div>
+            <div style={{ fontSize: 12, color: "#888" }}>This only affects tickets — your team, departments and pipelines stay as configured.</div>
           </div>
           <button className="pmos-btn sm ghost-danger" onClick={async () => {
-            if (!confirm("Reset all tickets back to the demo set? This only affects tickets — your team and services stay as configured.")) return;
+            if (!confirm("Reset all tickets back to the demo set? This only affects tickets.")) return;
             await pmosApi.resetTickets();
             toast.success("Tickets reset to demo set");
           }}>Reset tickets</button>

@@ -1,17 +1,25 @@
 export type Role = "admin" | "team_lead" | "staff";
 
-export interface TicketCategory {
+// ─── Department ───────────────────────────────────────────────────────────────
+export interface Department {
   id: string;
   name: string;
+  pipelines?: Pipeline[];
+  created_at: string;
 }
 
+// ─── StaffType ────────────────────────────────────────────────────────────────
 export interface StaffType {
   id: string;
   name: string;
   permissions: string[];
-  allowed_categories: string[];
+  /** Array of Department IDs this staff type can access */
+  allowed_departments: string[];
+  /** Array of Pipeline IDs this staff type can access within those departments */
+  allowed_pipelines: string[];
 }
 
+// ─── Team ─────────────────────────────────────────────────────────────────────
 export interface Team {
   id: string;
   name: string;
@@ -20,6 +28,7 @@ export interface Team {
   members: User[];
 }
 
+// ─── User ─────────────────────────────────────────────────────────────────────
 export interface User {
   id: string;
   username: string;
@@ -32,6 +41,7 @@ export interface User {
   created_at: string;
 }
 
+// ─── Pipeline ─────────────────────────────────────────────────────────────────
 export interface Pipeline {
   id: string;
   label: string;
@@ -46,10 +56,13 @@ export interface Pipeline {
     options: string[];
   };
   default_checklist: string[];
+  department_id: string;
+  department?: Department;
   created_by: string;
   created_at: string;
 }
 
+// ─── Ticket ───────────────────────────────────────────────────────────────────
 export interface Ticket {
   id: string;
   title: string;
@@ -70,6 +83,7 @@ export interface Ticket {
   due_date?: string | null;
 }
 
+// ─── Note ─────────────────────────────────────────────────────────────────────
 export interface Note {
   id: string;
   text: string;
@@ -78,6 +92,7 @@ export interface Note {
   created_at: string;
 }
 
+// ─── Auth ─────────────────────────────────────────────────────────────────────
 export interface LoginResponse {
   token: string;
   user: User;
@@ -98,6 +113,7 @@ export interface LoginRequest {
   password: string;
 }
 
+// ─── Request types ────────────────────────────────────────────────────────────
 export interface CreateUserRequest {
   username: string;
   password: string;
@@ -115,10 +131,33 @@ export interface UpdateUserRequest {
   team_id?: string;
 }
 
+export interface CreateDepartmentRequest {
+  name: string;
+}
+
+export interface UpdateDepartmentRequest {
+  name?: string;
+}
+
+export interface CreateStaffTypeRequest {
+  name: string;
+  permissions: string[];
+  allowed_departments: string[];
+  allowed_pipelines: string[];
+}
+
+export interface UpdateStaffTypeRequest {
+  name?: string;
+  permissions?: string[];
+  allowed_departments?: string[];
+  allowed_pipelines?: string[];
+}
+
 export interface CreatePipelineRequest {
   label: string;
   code: string;
   stages: string[];
+  department_id: string;
   tag_field?: any;
   category_field?: any;
   default_checklist?: string[];
@@ -128,6 +167,7 @@ export interface UpdatePipelineRequest {
   label?: string;
   code?: string;
   stages?: string[];
+  department_id?: string;
   tag_field?: any;
   category_field?: any;
   default_checklist?: string[];
@@ -165,6 +205,7 @@ export interface CreateNoteRequest {
   text: string;
 }
 
+// ─── Activity ─────────────────────────────────────────────────────────────────
 export interface StageTransition {
   type: "stage_transition";
   ticket_id: string;

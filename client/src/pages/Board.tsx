@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea
 import { pmosApi } from "../services/pmosApi";
 import { Pipeline, Ticket, User, Note, NoteActivity, ActivityItem } from "../types/pmos";
 import { avatarSwatch, initials, ageDays, fmtDate } from "../utils/ui";
-import { usePipelines, useTickets, useUsers, useMe, QUERY_KEYS } from "../hooks/useApi";
+import { usePipelines, useTickets, useUsers, useMe, useDepartments, QUERY_KEYS } from "../hooks/useApi";
 import toast from "react-hot-toast";
 
 /* ── helpers ── */
@@ -507,6 +507,7 @@ export const Board: React.FC = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [activePipelineId, setActivePipelineId] = useState<string | null>(null);
+  const [activeDeptId, setActiveDeptId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<"board" | "history">("board");
   const [filterMine, setFilterMine] = useState(false);
   const [openTicket, setOpenTicket] = useState<Ticket | null>(null);
@@ -516,8 +517,33 @@ export const Board: React.FC = () => {
   const [pipelineCounts, setPipelineCounts] = useState<Record<string, number>>({});
 
   const { data: me } = useMe();
-  const { data: pipelines = [] } = usePipelines();
+  const { data: allPipelines = [] } = usePipelines();
+  const { data: departments = [] } = useDepartments();
   const { data: tickets = [], isLoading: ticketsLoading } = useTickets(activePipelineId, filterMine);
+
+  // RBAC: filter pipelines based on role and staff type permissions
+  const visiblePipelines = React.useMemo(() => {
+    if (!me) return allPipelines;
+    if (me.role === "admin" || me.role === "team_lead") return allPipelines;
+    const allowedPipelines = me.staff_type?.allowed_pipelines ?? [];
+    const allowedDepts = me.staff_type?.allowed_departments ?? [];
+    if (allowedPipelines.length === 0 && allowedDepts.length === 0) return allPipelines;
+    return allPipelines.filter(p => {
+      const inDept = allowedDepts.length === 0 || allowedDepts.includes(p.department_id);
+      const inPipeline = allowedPipelines.length === 0 || allowedPipelines.includes(p.id);
+      return inDept && inPipeline;
+    });
+  }, [allPipelines, me]);
+
+  // Departments that have at least one visible pipeline
+  const visibleDepts = React.useMemo(() =>
+    departments.filter(d => visiblePipelines.some(p => p.department_id === d.id)),
+  [departments, visiblePipelines]);
+
+  // Pipelines under the currently selected department
+  const pipelines = React.useMemo(() =>
+    activeDeptId ? visiblePipelines.filter(p => p.department_id === activeDeptId) : visiblePipelines,
+  [visiblePipelines, activeDeptId]);
 
   // Persist per-pipeline ticket counts across tab switches
   useEffect(() => {
@@ -561,8 +587,21 @@ export const Board: React.FC = () => {
     if (!token) navigate("/login");
   }, [navigate]);
 
+  // Auto-select first visible department
   useEffect(() => {
-    if (pipelines.length > 0 && !activePipelineId) setActivePipelineId(pipelines[0].id);
+    if (visibleDepts.length > 0 && !activeDeptId) {
+      setActiveDeptId(visibleDepts[0].id);
+    }
+  }, [visibleDepts, activeDeptId]);
+
+  // Auto-select first pipeline in active dept
+  useEffect(() => {
+    if (pipelines.length > 0 && !activePipelineId) {
+      setActivePipelineId(pipelines[0].id);
+    } else if (pipelines.length > 0 && !pipelines.find(p => p.id === activePipelineId)) {
+      // Selected pipeline not in this dept anymore, reset
+      setActivePipelineId(pipelines[0].id);
+    }
   }, [pipelines, activePipelineId]);
 
   const getTicketsKey = () => activePipelineId ? QUERY_KEYS.tickets(activePipelineId, filterMine) : [];
@@ -657,7 +696,24 @@ export const Board: React.FC = () => {
             <button className="pmos-btn sm" onClick={logout}>Log out</button>
           </div>
         </div>
-        {/* Pipeline tabs */}
+        {/* Department tabs */}
+        <div className="pmos-dept-tabs">
+          {visibleDepts.map(dept => (
+            <div
+              key={dept.id}
+              className={`pmos-dept-tab ${dept.id === activeDeptId ? "active" : ""}`}
+              onClick={() => {
+                setActiveDeptId(dept.id);
+                // Auto-select first pipeline in this dept
+                const firstPipe = visiblePipelines.find(p => p.department_id === dept.id);
+                if (firstPipe) setActivePipelineId(firstPipe.id);
+              }}
+            >
+              {dept.name}
+            </div>
+          ))}
+        </div>
+        {/* Pipeline tabs (filtered by active dept) */}
         <div className="pmos-tabs">
           {pipelines.map(p => {
             const count = p.id === activePipelineId ? tickets.length : (pipelineCounts[p.id] ?? 0);
@@ -667,11 +723,16 @@ export const Board: React.FC = () => {
                 className={`pmos-tab ${p.id === activePipelineId ? "active" : ""}`}
                 onClick={() => setActivePipelineId(p.id)}
               >
-                <span>{(p as any).code} · {p.label}</span>
+                <span>{p.code} · {p.label}</span>
                 <span className="count mono">{count}</span>
               </div>
             );
           })}
+          {pipelines.length === 0 && activeDeptId && (
+            <div className="pmos-tab" style={{ opacity: 0.5, cursor: "default", fontStyle: "italic" }}>
+              No pipelines in this department
+            </div>
+          )}
         </div>
       </div>
 

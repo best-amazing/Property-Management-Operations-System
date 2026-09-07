@@ -1,11 +1,12 @@
 import {
   LoginResponse, LoginOtpResponse, LoginRequest, VerifyOtpRequest,
+  Department, CreateDepartmentRequest, UpdateDepartmentRequest,
   Pipeline, CreatePipelineRequest, UpdatePipelineRequest,
   Ticket, CreateTicketRequest, UpdateTicketRequest,
   Note, CreateNoteRequest,
   User, CreateUserRequest, UpdateUserRequest,
   ActivityItem,
-  StaffType, Team, TicketCategory
+  StaffType, CreateStaffTypeRequest, UpdateStaffTypeRequest, Team,
 } from "../types/pmos";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1";
@@ -34,11 +35,15 @@ export const pmosApi = {
     return response.json();
   },
 
+  // ─── Auth ─────────────────────────────────────────────────────────────────
   login: (credentials: LoginRequest) =>
     pmosApi.request<LoginOtpResponse>("/client/auth/login", { method: "POST", body: JSON.stringify(credentials) }),
   verifyOtp: (data: VerifyOtpRequest) =>
     pmosApi.request<LoginResponse>("/client/auth/login/verify-otp", { method: "POST", body: JSON.stringify(data) }),
 
+  // ─── Users ────────────────────────────────────────────────────────────────
+  getUsers: () => pmosApi.request<User[]>("/client/users"),
+  getMe: () => pmosApi.request<User>("/client/users/me"),
   createUser: (data: CreateUserRequest) =>
     pmosApi.request<User>("/admin/users", { method: "POST", body: JSON.stringify(data) }),
   updateUser: (id: string, data: UpdateUserRequest) =>
@@ -46,22 +51,34 @@ export const pmosApi = {
   deleteUser: (id: string) =>
     pmosApi.request<void>(`/admin/users/${id}`, { method: "DELETE" }),
 
-  getMe: () => pmosApi.request<User>("/client/users/me"),
+  // ─── Departments ──────────────────────────────────────────────────────────
+  getDepartments: () => pmosApi.request<Department[]>("/admin/departments"),
+  createDepartment: (data: CreateDepartmentRequest) =>
+    pmosApi.request<Department>("/admin/departments", { method: "POST", body: JSON.stringify(data) }),
+  updateDepartment: (id: string, data: UpdateDepartmentRequest) =>
+    pmosApi.request<Department>(`/admin/departments/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteDepartment: (id: string) =>
+    pmosApi.request<void>(`/admin/departments/${id}`, { method: "DELETE" }),
 
+  // ─── Staff Types ──────────────────────────────────────────────────────────
   getStaffTypes: () => pmosApi.request<StaffType[]>("/admin/staff-types"),
-  createStaffType: (data: any) => pmosApi.request<StaffType>("/admin/staff-types", { method: "POST", body: JSON.stringify(data) }),
-  updateStaffType: (id: string, data: any) => pmosApi.request<StaffType>(`/admin/staff-types/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  deleteStaffType: (id: string) => pmosApi.request<void>(`/admin/staff-types/${id}`, { method: "DELETE" }),
+  createStaffType: (data: CreateStaffTypeRequest) =>
+    pmosApi.request<StaffType>("/admin/staff-types", { method: "POST", body: JSON.stringify(data) }),
+  updateStaffType: (id: string, data: UpdateStaffTypeRequest) =>
+    pmosApi.request<StaffType>(`/admin/staff-types/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteStaffType: (id: string) =>
+    pmosApi.request<void>(`/admin/staff-types/${id}`, { method: "DELETE" }),
 
+  // ─── Teams ────────────────────────────────────────────────────────────────
   getTeams: () => pmosApi.request<Team[]>("/admin/teams"),
-  createTeam: (data: any) => pmosApi.request<Team>("/admin/teams", { method: "POST", body: JSON.stringify(data) }),
-  updateTeam: (id: string, data: any) => pmosApi.request<Team>(`/admin/teams/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  deleteTeam: (id: string) => pmosApi.request<void>(`/admin/teams/${id}`, { method: "DELETE" }),
+  createTeam: (data: any) =>
+    pmosApi.request<Team>("/admin/teams", { method: "POST", body: JSON.stringify(data) }),
+  updateTeam: (id: string, data: any) =>
+    pmosApi.request<Team>(`/admin/teams/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteTeam: (id: string) =>
+    pmosApi.request<void>(`/admin/teams/${id}`, { method: "DELETE" }),
 
-  getTicketCategories: () => pmosApi.request<TicketCategory[]>("/admin/ticket-categories"),
-  createTicketCategory: (data: any) => pmosApi.request<TicketCategory>("/admin/ticket-categories", { method: "POST", body: JSON.stringify(data) }),
-  deleteTicketCategory: (id: string) => pmosApi.request<void>(`/admin/ticket-categories/${id}`, { method: "DELETE" }),
-
+  // ─── Pipelines ────────────────────────────────────────────────────────────
   getPipelines: () => pmosApi.request<Pipeline[]>("/client/pipelines"),
   getPipeline: (id: string) => pmosApi.request<Pipeline>(`/client/pipelines/${id}`),
   createPipeline: (data: CreatePipelineRequest) =>
@@ -71,6 +88,7 @@ export const pmosApi = {
   deletePipeline: (id: string) =>
     pmosApi.request<void>(`/admin/pipelines/${id}`, { method: "DELETE" }),
 
+  // ─── Tickets ──────────────────────────────────────────────────────────────
   getTickets: (pipelineId: string, mine: boolean = false) =>
     pmosApi.request<Ticket[]>(`/client/tickets/pipeline/${pipelineId}${mine ? "?mine=true" : ""}`),
   getTicket: (id: string) => pmosApi.request<Ticket>(`/client/tickets/${id}`),
@@ -83,13 +101,14 @@ export const pmosApi = {
   deleteTicket: (id: string) =>
     pmosApi.request<void>(`/client/tickets/${id}`, { method: "DELETE" }),
 
+  // ─── Notes ────────────────────────────────────────────────────────────────
   getNotes: (ticketId: string) => pmosApi.request<Note[]>(`/client/notes/${ticketId}`),
   createNote: (ticketId: string, data: CreateNoteRequest) =>
     pmosApi.request<Note>(`/client/notes/${ticketId}`, { method: "POST", body: JSON.stringify(data) }),
   deleteNote: (id: string) =>
     pmosApi.request<void>(`/client/notes/${id}`, { method: "DELETE" }),
 
+  // ─── Activity & Admin ─────────────────────────────────────────────────────
   getActivity: () => pmosApi.request<ActivityItem[]>("/client/activity"),
-  getUsers: () => pmosApi.request<User[]>("/client/users"),
   resetTickets: () => pmosApi.request<{ message: string }>("/admin/seed/tickets", { method: "POST" }),
 };
