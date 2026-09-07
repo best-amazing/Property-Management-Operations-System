@@ -522,10 +522,43 @@ export const Board: React.FC = () => {
   const { data: tickets = [], isLoading: ticketsLoading } = useTickets(activePipelineId, filterMine);
 
   // RBAC: filter pipelines based on role and staff type permissions
-  const isPrivileged = me?.role === "admin" || me?.role === "team_lead";
+  const isPrivileged = me?.role === "admin";
+  const isTeamLead = me?.role === "team_lead";
+
+  // A Team Lead's board scope = the union of their team members' staff type scopes.
+  // Empty allowed lists on a staff type mean unrestricted, so one unrestricted
+  // member makes the whole team's scope unrestricted.
+  const leadScope = React.useMemo(() => {
+    if (!isTeamLead) return null;
+    const members = me?.team?.members ?? [];
+    const unrestricted = members.some(m =>
+      (m.staff_type?.allowed_departments ?? []).length === 0
+      && (m.staff_type?.allowed_pipelines ?? []).length === 0
+    );
+    const allowedDepartments: string[] = [];
+    const allowedPipelines: string[] = [];
+    for (const m of members) {
+      for (const d of (m.staff_type?.allowed_departments ?? [])) {
+        if (!allowedDepartments.includes(d)) allowedDepartments.push(d);
+      }
+      for (const p of (m.staff_type?.allowed_pipelines ?? [])) {
+        if (!allowedPipelines.includes(p)) allowedPipelines.push(p);
+      }
+    }
+    return { unrestricted, allowedDepartments, allowedPipelines };
+  }, [isTeamLead, me?.team?.members]);
+
   const visiblePipelines = React.useMemo(() => {
     if (!me) return allPipelines;
     if (isPrivileged) return allPipelines;
+    if (isTeamLead) {
+      if (!leadScope || leadScope.unrestricted) return allPipelines;
+      return allPipelines.filter(p => {
+        const inDept = leadScope.allowedDepartments.length === 0 || leadScope.allowedDepartments.includes(p.department_id);
+        const inPipeline = leadScope.allowedPipelines.length === 0 || leadScope.allowedPipelines.includes(p.id);
+        return inDept && inPipeline;
+      });
+    }
     const allowedPipelines = me.staff_type?.allowed_pipelines ?? [];
     const allowedDepts = me.staff_type?.allowed_departments ?? [];
     if (allowedPipelines.length === 0 && allowedDepts.length === 0) return allPipelines;
@@ -534,17 +567,23 @@ export const Board: React.FC = () => {
       const inPipeline = allowedPipelines.length === 0 || allowedPipelines.includes(p.id);
       return inDept && inPipeline;
     });
-  }, [allPipelines, me, isPrivileged]);
+  }, [allPipelines, me, isPrivileged, isTeamLead, leadScope]);
 
   // Departments shown as tabs.
-  // - Admin/Team Lead: every department, including ones without pipelines.
+  // - Admin: every department, including ones without pipelines.
+  // - Team Lead: departments covered by their team's combined staff type scope.
   // - Staff: only their allowed departments.
   const visibleDepts = React.useMemo(() => {
     if (isPrivileged) return departments;
+    if (isTeamLead) {
+      if (!leadScope || leadScope.unrestricted) return departments;
+      if (leadScope.allowedDepartments.length === 0) return departments;
+      return departments.filter(d => leadScope.allowedDepartments.includes(d.id));
+    }
     const allowedDepts = me?.staff_type?.allowed_departments ?? [];
     if (allowedDepts.length === 0) return departments;
     return departments.filter(d => allowedDepts.includes(d.id));
-  }, [departments, me, isPrivileged]);
+  }, [departments, me, isPrivileged, isTeamLead, leadScope]);
 
   // PIPELINE_IDS:
   //  Any department tab, see that dept's pipelines.

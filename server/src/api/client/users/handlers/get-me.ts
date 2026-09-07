@@ -35,7 +35,18 @@ export const getMeHandler = async (req: Request, res: Response): Promise<void> =
             id: true,
             name: true,
             lead_id: true,
-            members: { select: { id: true, display_name: true } },
+            members: {
+              select: {
+                id: true,
+                display_name: true,
+                staff_type: {
+                  select: {
+                    allowed_departments: true,
+                    allowed_pipelines: true,
+                  },
+                },
+              },
+            },
           },
         },
       },

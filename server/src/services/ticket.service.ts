@@ -14,10 +14,15 @@ export const ticketService = {
     if (user) {
       if (user.role === "team_lead") {
         if (!explicitAssignedTo) {
-          where.OR = [
-            { assigned_to: user.display_name },
-            { team_id: user.team_id }
-          ];
+          const members = user.team_id
+            ? await prisma.user.findMany({ where: { team_id: user.team_id }, select: { display_name: true } })
+            : [];
+          const memberNames = members.map((m: any) => m.display_name);
+          if (user.display_name && !memberNames.includes(user.display_name)) {
+            memberNames.push(user.display_name);
+          }
+          where.OR = [{ assigned_to: { in: memberNames } }];
+          if (user.team_id) where.OR.push({ team_id: user.team_id });
         }
       } else if (user.role === "staff") {
         const staffType = user.staff_type_id ? await prisma.staffType.findUnique({ where: { id: user.staff_type_id } }) : null;
