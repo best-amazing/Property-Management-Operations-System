@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { pmosApi } from "../services/pmosApi";
-import { User, Pipeline, Department } from "../types/pmos";
+import { User, Pipeline, Department, Team } from "../types/pmos";
 import { avatarSwatch, initials } from "../utils/ui";
 import { usePipelines, useUsers, useStaffTypes, useTeams, useDepartments, QUERY_KEYS } from "../hooks/useApi";
 
@@ -76,6 +76,8 @@ export const AdminSettings: React.FC = () => {
   // ── Teams ─────────────────────────────────────────────────────────────────
   const [newTeamName, setNewTeamName] = useState("");
   const [newTeamLeadId, setNewTeamLeadId] = useState("");
+  const [editingMembersTeamId, setEditingMembersTeamId] = useState<string | null>(null);
+  const [teamMemberSel, setTeamMemberSel] = useState<string[]>([]);
 
   // ── Pipeline create state ─────────────────────────────────────────────────
   const [svcName, setSvcName] = useState("");
@@ -116,6 +118,10 @@ export const AdminSettings: React.FC = () => {
   // ── User handlers ──────────────────────────────────────────────────────────
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (newRole === "team_lead" && !newTeamId) {
+      toast.error("A Team Lead must be assigned to a Team.");
+      return;
+    }
     await pmosApi.createUser({
       username: newUsername, password: newPassword, display_name: newDisplayName, role: newRole,
       staff_type_id: newStaffTypeId || undefined, team_id: newTeamId || undefined
@@ -123,12 +129,14 @@ export const AdminSettings: React.FC = () => {
     setNewUsername(""); setNewPassword(""); setNewDisplayName("");
     toast.success("Team member created");
     qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.teams });
   };
 
   const handleDeleteUser = async (id: string) => {
     if (!confirm("Remove this user?")) return;
     await pmosApi.deleteUser(id);
     qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.teams });
   };
 
   const startEdit = (u: User) => {
@@ -142,6 +150,10 @@ export const AdminSettings: React.FC = () => {
 
   const saveEdit = async () => {
     if (!editingUserId) return;
+    if (editRole === "team_lead" && !editTeamId) {
+      toast.error("A Team Lead must be assigned to a Team.");
+      return;
+    }
     await pmosApi.updateUser(editingUserId, {
       display_name: editName, role: editRole,
       staff_type_id: editStaffTypeId || undefined, team_id: editTeamId || undefined,
@@ -150,6 +162,7 @@ export const AdminSettings: React.FC = () => {
     setEditingUserId(null);
     toast.success("Team member updated");
     qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.teams });
   };
 
   // ── Department handlers ────────────────────────────────────────────────────
@@ -216,12 +229,30 @@ export const AdminSettings: React.FC = () => {
     setNewTeamName(""); setNewTeamLeadId("");
     toast.success("Team created");
     qc.invalidateQueries({ queryKey: QUERY_KEYS.teams });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
   };
 
   const handleDeleteTeamGroup = async (id: string) => {
     if (!confirm("Remove this team?")) return;
     await pmosApi.deleteTeam(id);
     qc.invalidateQueries({ queryKey: QUERY_KEYS.teams });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
+  };
+
+  // ── Team member management ────────────────────────────────────────────────
+  const openTeamMembers = (t: Team) => {
+    setEditingMembersTeamId(t.id);
+    setTeamMemberSel((t.members || []).map(m => m.id));
+  };
+
+  const saveTeamMembers = async (t: Team) => {
+    const ids = [...teamMemberSel];
+    if (t.lead?.id && !ids.includes(t.lead.id)) ids.push(t.lead.id);
+    await pmosApi.updateTeam(t.id, { member_ids: ids });
+    setEditingMembersTeamId(null);
+    toast.success("Team members updated");
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.teams });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
   };
 
   // ── Pipeline create handlers ───────────────────────────────────────────────
@@ -352,7 +383,11 @@ export const AdminSettings: React.FC = () => {
                   {isEditing ? (
                     <div className="grow" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                       <div className="pmos-field" style={{ margin: 0, flex: "1 1 140px" }}><input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Name" /></div>
-                      <div className="pmos-field" style={{ margin: 0, width: 100 }}><select value={editRole} onChange={e => setEditRole(e.target.value as any)}><option value="staff">Staff</option><option value="team_lead">Team Lead</option><option value="admin">Admin</option></select></div>
+                      <div className="pmos-field" style={{ margin: 0, width: 100 }}><select value={editRole} onChange={e => {
+                        const r = e.target.value as any;
+                        setEditRole(r);
+                        if (r === "team_lead" && !editTeamId && teams.length > 0) setEditTeamId(teams[0].id);
+                      }}><option value="staff">Staff</option><option value="team_lead">Team Lead</option><option value="admin">Admin</option></select></div>
                       <div className="pmos-field" style={{ margin: 0, width: 130 }}>
                         <select value={editStaffTypeId} onChange={e => setEditStaffTypeId(e.target.value)}>
                           <option value="">No Staff Type</option>
@@ -361,7 +396,7 @@ export const AdminSettings: React.FC = () => {
                       </div>
                       <div className="pmos-field" style={{ margin: 0, width: 120 }}>
                         <select value={editTeamId} onChange={e => setEditTeamId(e.target.value)}>
-                          <option value="">No Team</option>
+                          <option value="" disabled={editRole === "team_lead"}>No Team</option>
                           {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                       </div>
@@ -393,7 +428,11 @@ export const AdminSettings: React.FC = () => {
                 <div className="pmos-field"><label>Password</label><input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></div>
               </div>
               <div className="pmos-row2">
-                <div className="pmos-field"><label>Role</label><select value={newRole} onChange={e => setNewRole(e.target.value as "admin" | "team_lead" | "staff")}><option value="staff">Staff</option><option value="team_lead">Team Lead</option><option value="admin">Admin</option></select></div>
+                <div className="pmos-field"><label>Role</label><select value={newRole} onChange={e => {
+                  const r = e.target.value as "admin" | "team_lead" | "staff";
+                  setNewRole(r);
+                  if (r === "team_lead" && !newTeamId && teams.length > 0) setNewTeamId(teams[0].id);
+                }}><option value="staff">Staff</option><option value="team_lead">Team Lead</option><option value="admin">Admin</option></select></div>
                 <div className="pmos-field">
                   <label>Staff Type</label>
                   <select value={newStaffTypeId} onChange={e => setNewStaffTypeId(e.target.value)}>
@@ -402,9 +441,9 @@ export const AdminSettings: React.FC = () => {
                   </select>
                 </div>
                 <div className="pmos-field">
-                  <label>Team</label>
+                  <label>Team {newRole === "team_lead" && <span style={{ color: "#c00" }}>*</span>}</label>
                   <select value={newTeamId} onChange={e => setNewTeamId(e.target.value)}>
-                    <option value="">None</option>
+                    <option value="" disabled={newRole === "team_lead"}>None</option>
                     {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                 </div>
@@ -419,28 +458,63 @@ export const AdminSettings: React.FC = () => {
           <div>
             {teams.map(t => (
                <div key={t.id} className="pmos-admin-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
-                 <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
+                 <div style={{ display: "flex", width: "100%", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
                    <div className="grow">
                      <div className="lbl">{t.name}</div>
                      <div className="sub">Lead: {t.lead?.display_name || "None"}</div>
                    </div>
+                   <button className="pmos-btn sm" style={{ marginLeft: "auto" }} onClick={() => openTeamMembers(t)}>Manage members</button>
                    <button className="pmos-btn sm ghost-danger" onClick={() => handleDeleteTeamGroup(t.id)}>Remove</button>
                  </div>
-                 {t.members && t.members.length > 0 && (
-                   <div style={{ paddingLeft: 12, display: "flex", flexDirection: "column", gap: 4 }}>
-                     {t.members.map(m => (
-                       <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
-                         <span className="pmos-avatar" style={{ width: 22, height: 22, fontSize: 9, background: avatarSwatch(m.display_name).color }}>
-                           {initials(m.display_name)}
-                         </span>
-                         <span>{m.display_name}</span>
-                         <span className={`pmos-role-badge ${m.role}`} style={{ fontSize: 8.5, padding: "1px 6px" }}>{m.role}</span>
-                       </div>
-                     ))}
+                 {editingMembersTeamId === t.id ? (
+                   <div style={{ paddingLeft: 12, width: "100%" }}>
+                     <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Select team members</div>
+                     <div className="pmos-stafftype-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, maxHeight: 180, overflowY: "auto", border: "1px solid var(--line)", padding: 10, borderRadius: 6, background: "var(--bg)" }}>
+                       {users.map(u => {
+                         const isLead = u.id === t.lead?.id;
+                         return (
+                           <label key={u.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500, cursor: isLead ? "not-allowed" : "pointer" }}>
+                             <input
+                               type="checkbox"
+                               checked={teamMemberSel.includes(u.id) || isLead}
+                               disabled={isLead}
+                               onChange={e => {
+                                 if (e.target.checked) setTeamMemberSel(prev => [...prev, u.id]);
+                                 else setTeamMemberSel(prev => prev.filter(x => x !== u.id));
+                               }}
+                               style={{ width: 16, height: 16, margin: 0 }}
+                             />
+                             <span>{u.display_name}</span>
+                             <span className={`pmos-role-badge ${u.role}`} style={{ fontSize: 8.5, padding: "1px 6px" }}>{u.role}</span>
+                             {isLead && <span style={{ fontSize: 10.5, color: "var(--accent)", fontWeight: 600 }}>lead</span>}
+                           </label>
+                         );
+                       })}
+                     </div>
+                     <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                       <button className="pmos-btn primary sm" onClick={() => saveTeamMembers(t)}>Save members</button>
+                       <button className="pmos-btn sm" onClick={() => setEditingMembersTeamId(null)}>Cancel</button>
+                     </div>
                    </div>
-                 )}
-                 {(!t.members || t.members.length === 0) && (
-                   <div className="sub" style={{ paddingLeft: 12, fontStyle: "italic" }}>No members assigned</div>
+                 ) : (
+                   <>
+                     {t.members && t.members.length > 0 && (
+                       <div style={{ paddingLeft: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+                         {t.members.map(m => (
+                           <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
+                             <span className="pmos-avatar" style={{ width: 22, height: 22, fontSize: 9, background: avatarSwatch(m.display_name).color }}>
+                               {initials(m.display_name)}
+                             </span>
+                             <span>{m.display_name}</span>
+                             <span className={`pmos-role-badge ${m.role}`} style={{ fontSize: 8.5, padding: "1px 6px" }}>{m.role}</span>
+                           </div>
+                         ))}
+                       </div>
+                     )}
+                     {(!t.members || t.members.length === 0) && (
+                       <div className="sub" style={{ paddingLeft: 12, fontStyle: "italic" }}>No members assigned</div>
+                     )}
+                   </>
                  )}
                </div>
             ))}
