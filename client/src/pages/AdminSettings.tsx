@@ -255,6 +255,19 @@ export const AdminSettings: React.FC = () => {
     qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
   };
 
+  const changeTeamLead = async (t: Team, leadId: string) => {
+    await pmosApi.updateTeam(t.id, { lead_id: leadId || null });
+    const oldLeadId = t.lead?.id;
+    setTeamMemberSel(prev => {
+      let next = oldLeadId ? prev.filter(x => x !== oldLeadId) : prev;
+      if (leadId && !next.includes(leadId)) next = [...next, leadId];
+      return next;
+    });
+    toast.success("Team lead updated");
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.teams });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.users });
+  };
+
   // ── Pipeline create handlers ───────────────────────────────────────────────
   const addStage = () => setSvcStages(prev => [...prev, ""]);
   const removeStage = (i: number) => setSvcStages(prev => prev.filter((_, idx) => idx !== i));
@@ -468,6 +481,13 @@ export const AdminSettings: React.FC = () => {
                  </div>
                  {editingMembersTeamId === t.id ? (
                    <div style={{ paddingLeft: 12, width: "100%" }}>
+                     <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
+                       <label style={{ fontSize: 12, fontWeight: 600 }}>Team Lead</label>
+                       <select value={t.lead?.id || ""} onChange={e => changeTeamLead(t, e.target.value)} style={{ maxWidth: 220 }}>
+                         <option value="">None</option>
+                         {users.map(u => <option key={u.id} value={u.id}>{u.display_name}</option>)}
+                       </select>
+                     </div>
                      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Select team members</div>
                      <div className="pmos-stafftype-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, maxHeight: 180, overflowY: "auto", border: "1px solid var(--line)", padding: 10, borderRadius: 6, background: "var(--bg)" }}>
                        {users.map(u => {
