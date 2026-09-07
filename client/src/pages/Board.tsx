@@ -522,9 +522,10 @@ export const Board: React.FC = () => {
   const { data: tickets = [], isLoading: ticketsLoading } = useTickets(activePipelineId, filterMine);
 
   // RBAC: filter pipelines based on role and staff type permissions
+  const isPrivileged = me?.role === "admin" || me?.role === "team_lead";
   const visiblePipelines = React.useMemo(() => {
     if (!me) return allPipelines;
-    if (me.role === "admin" || me.role === "team_lead") return allPipelines;
+    if (isPrivileged) return allPipelines;
     const allowedPipelines = me.staff_type?.allowed_pipelines ?? [];
     const allowedDepts = me.staff_type?.allowed_departments ?? [];
     if (allowedPipelines.length === 0 && allowedDepts.length === 0) return allPipelines;
@@ -533,17 +534,28 @@ export const Board: React.FC = () => {
       const inPipeline = allowedPipelines.length === 0 || allowedPipelines.includes(p.id);
       return inDept && inPipeline;
     });
-  }, [allPipelines, me]);
+  }, [allPipelines, me, isPrivileged]);
 
-  // Departments that have at least one visible pipeline
-  const visibleDepts = React.useMemo(() =>
-    departments.filter(d => visiblePipelines.some(p => p.department_id === d.id)),
-  [departments, visiblePipelines]);
+  // Departments shown as tabs.
+  // - Admin/Team Lead: every department, including ones without pipelines.
+  // - Staff: only their allowed departments.
+  const visibleDepts = React.useMemo(() => {
+    if (isPrivileged) return departments;
+    const allowedDepts = me?.staff_type?.allowed_departments ?? [];
+    if (allowedDepts.length === 0) return departments;
+    return departments.filter(d => allowedDepts.includes(d.id));
+  }, [departments, me, isPrivileged]);
 
-  // Pipelines under the currently selected department
+  // PIPELINE_IDS:
+  //  Any department tab, see that dept's pipelines.
+  //  "all" (or none selected), see every visible pipeline across departments.
+  const ALL_DEPTS = "all";
+  const effectiveDeptId = activeDeptId ?? ALL_DEPTS;
   const pipelines = React.useMemo(() =>
-    activeDeptId ? visiblePipelines.filter(p => p.department_id === activeDeptId) : visiblePipelines,
-  [visiblePipelines, activeDeptId]);
+    effectiveDeptId === ALL_DEPTS
+      ? visiblePipelines
+      : visiblePipelines.filter(p => p.department_id === effectiveDeptId),
+  [visiblePipelines, effectiveDeptId]);
 
   // Persist per-pipeline ticket counts across tab switches
   useEffect(() => {
@@ -587,10 +599,10 @@ export const Board: React.FC = () => {
     if (!token) navigate("/login");
   }, [navigate]);
 
-  // Auto-select first visible department
+  // Auto-select "All" departments tab on first load so every pipeline is visible
   useEffect(() => {
-    if (visibleDepts.length > 0 && !activeDeptId) {
-      setActiveDeptId(visibleDepts[0].id);
+    if (!activeDeptId && visibleDepts.length >= 0) {
+      setActiveDeptId(null); // null = "All" (shows every pipeline)
     }
   }, [visibleDepts, activeDeptId]);
 
@@ -698,13 +710,21 @@ export const Board: React.FC = () => {
         </div>
         {/* Department tabs */}
         <div className="pmos-dept-tabs">
+          <div
+            className={`pmos-dept-tab ${activeDeptId === null ? "active" : ""}`}
+            onClick={() => {
+              setActiveDeptId(null);
+              setActivePipelineId(visiblePipelines[0]?.id ?? null);
+            }}
+          >
+            All
+          </div>
           {visibleDepts.map(dept => (
             <div
               key={dept.id}
               className={`pmos-dept-tab ${dept.id === activeDeptId ? "active" : ""}`}
               onClick={() => {
                 setActiveDeptId(dept.id);
-                // Auto-select first pipeline in this dept
                 const firstPipe = visiblePipelines.find(p => p.department_id === dept.id);
                 if (firstPipe) setActivePipelineId(firstPipe.id);
               }}
@@ -713,7 +733,7 @@ export const Board: React.FC = () => {
             </div>
           ))}
         </div>
-        {/* Pipeline tabs (filtered by active dept) */}
+        {/* Pipeline tabs (filtered by active dept, or all when "All" is selected) */}
         <div className="pmos-tabs">
           {pipelines.map(p => {
             const count = p.id === activePipelineId ? tickets.length : (pipelineCounts[p.id] ?? 0);
