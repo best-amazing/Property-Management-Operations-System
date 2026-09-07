@@ -328,7 +328,7 @@ export const AdminSettings: React.FC = () => {
 
   return (
     <div className="pmos-modal-bg show" style={{ position: "fixed", inset: 0, zIndex: 50 }}>
-      <div className="pmos-modal wide" onClick={e => e.stopPropagation()} style={{ maxHeight: "90vh", overflowY: "auto", minWidth: 800 }}>
+      <div className="pmos-modal wide" onClick={e => e.stopPropagation()} style={{ maxHeight: "90vh", overflowY: "auto" }}>
         <h3>Admin settings</h3>
         <div className="pmos-modal-tabs">
           <button className={`pmos-seg-btn ${activeTab === "team" ? "active" : ""}`} onClick={() => setActiveTab("team")}>Users</button>
@@ -502,7 +502,7 @@ export const AdminSettings: React.FC = () => {
               {/* Department access */}
               <div className="pmos-field">
                 <label>Allowed Departments <span style={{ fontWeight: 400, color: "var(--ink-soft)", fontSize: 12 }}>(leave empty = all departments)</span></label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, maxHeight: 150, overflowY: "auto", border: "1px solid var(--line)", padding: 12, borderRadius: 6, background: "var(--bg)" }}>
+                <div className="pmos-stafftype-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, maxHeight: 150, overflowY: "auto", border: "1px solid var(--line)", padding: 12, borderRadius: 6, background: "var(--bg)" }}>
                   {departments.length === 0
                     ? <span style={{ color: "var(--ink-soft)", fontSize: 13, gridColumn: "1 / -1" }}>No departments yet — create one first.</span>
                     : departments.map(d => (
@@ -532,7 +532,7 @@ export const AdminSettings: React.FC = () => {
                     {newStaffTypeDepts.length > 0 ? " (within selected departments)" : " (leave empty = all pipelines)"}
                   </span>
                 </label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, maxHeight: 200, overflowY: "auto", border: "1px solid var(--line)", padding: 12, borderRadius: 6, background: "var(--bg)" }}>
+                <div className="pmos-stafftype-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, maxHeight: 200, overflowY: "auto", border: "1px solid var(--line)", padding: 12, borderRadius: 6, background: "var(--bg)" }}>
                   {pipelinesForDepts(newStaffTypeDepts).length === 0
                     ? <span style={{ color: "var(--ink-soft)", fontSize: 13, gridColumn: "1 / -1" }}>No pipelines in selected departments.</span>
                     : pipelinesForDepts(newStaffTypeDepts).map(p => (
