@@ -502,11 +502,11 @@ export const AdminSettings: React.FC = () => {
               {/* Department access */}
               <div className="pmos-field">
                 <label>Allowed Departments <span style={{ fontWeight: 400, color: "var(--ink-soft)", fontSize: 12 }}>(leave empty = all departments)</span></label>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", maxHeight: 120, overflowY: "auto", border: "1px solid #ddd", padding: 10, borderRadius: 6 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, maxHeight: 150, overflowY: "auto", border: "1px solid var(--line)", padding: 12, borderRadius: 6, background: "var(--bg)" }}>
                   {departments.length === 0
-                    ? <span style={{ color: "var(--ink-soft)", fontSize: 13 }}>No departments yet — create one first.</span>
+                    ? <span style={{ color: "var(--ink-soft)", fontSize: 13, gridColumn: "1 / -1" }}>No departments yet — create one first.</span>
                     : departments.map(d => (
-                        <label key={d.id} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <label key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500, cursor: "pointer", color: "var(--ink)" }}>
                           <input type="checkbox" checked={newStaffTypeDepts.includes(d.id)} onChange={e => {
                             if (e.target.checked) {
                               setNewStaffTypeDepts([...newStaffTypeDepts, d.id]);
@@ -516,7 +516,7 @@ export const AdminSettings: React.FC = () => {
                               const deptPipelineIds = pipelines.filter(p => p.department_id === d.id).map(p => p.id);
                               setNewStaffTypePipelines(newStaffTypePipelines.filter(x => !deptPipelineIds.includes(x)));
                             }
-                          }} />
+                          }} style={{ width: 16, height: 16, margin: 0 }} />
                           {d.name}
                         </label>
                       ))
@@ -532,21 +532,21 @@ export const AdminSettings: React.FC = () => {
                     {newStaffTypeDepts.length > 0 ? " (within selected departments)" : " (leave empty = all pipelines)"}
                   </span>
                 </label>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", maxHeight: 150, overflowY: "auto", border: "1px solid #ddd", padding: 10, borderRadius: 6 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, maxHeight: 200, overflowY: "auto", border: "1px solid var(--line)", padding: 12, borderRadius: 6, background: "var(--bg)" }}>
                   {pipelinesForDepts(newStaffTypeDepts).length === 0
-                    ? <span style={{ color: "var(--ink-soft)", fontSize: 13 }}>No pipelines in selected departments.</span>
+                    ? <span style={{ color: "var(--ink-soft)", fontSize: 13, gridColumn: "1 / -1" }}>No pipelines in selected departments.</span>
                     : pipelinesForDepts(newStaffTypeDepts).map(p => (
-                        <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <label key={p.id} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, fontWeight: 500, cursor: "pointer", color: "var(--ink)" }}>
                           <input type="checkbox" checked={newStaffTypePipelines.includes(p.id)} onChange={e => {
                             if (e.target.checked) setNewStaffTypePipelines([...newStaffTypePipelines, p.id]);
                             else setNewStaffTypePipelines(newStaffTypePipelines.filter(x => x !== p.id));
-                          }} />
-                          <span>
-                            {p.label}
-                            <span style={{ color: "var(--ink-soft)", fontSize: 11, marginLeft: 4 }}>
+                          }} style={{ width: 16, height: 16, margin: 0, marginTop: 2 }} />
+                          <div style={{ display: "flex", flexDirection: "column" }}>
+                            <span>{p.label}</span>
+                            <span style={{ color: "var(--ink-soft)", fontSize: 11, fontWeight: 400 }}>
                               {departments.find(d => d.id === p.department_id)?.name}
                             </span>
-                          </span>
+                          </div>
                         </label>
                       ))
                   }
