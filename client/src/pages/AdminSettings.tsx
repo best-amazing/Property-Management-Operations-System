@@ -418,12 +418,30 @@ export const AdminSettings: React.FC = () => {
         {activeTab === "teams" && (
           <div>
             {teams.map(t => (
-               <div key={t.id} className="pmos-admin-row">
-                 <div className="grow">
-                   <div className="lbl">{t.name}</div>
-                   <div className="sub">Lead: {t.lead?.display_name || "None"} • Members: {t.members?.length || 0}</div>
+               <div key={t.id} className="pmos-admin-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+                 <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
+                   <div className="grow">
+                     <div className="lbl">{t.name}</div>
+                     <div className="sub">Lead: {t.lead?.display_name || "None"}</div>
+                   </div>
+                   <button className="pmos-btn sm ghost-danger" onClick={() => handleDeleteTeamGroup(t.id)}>Remove</button>
                  </div>
-                 <button className="pmos-btn sm ghost-danger" onClick={() => handleDeleteTeamGroup(t.id)}>Remove</button>
+                 {t.members && t.members.length > 0 && (
+                   <div style={{ paddingLeft: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+                     {t.members.map(m => (
+                       <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
+                         <span className="pmos-avatar" style={{ width: 22, height: 22, fontSize: 9, background: avatarSwatch(m.display_name).color }}>
+                           {initials(m.display_name)}
+                         </span>
+                         <span>{m.display_name}</span>
+                         <span className={`pmos-role-badge ${m.role}`} style={{ fontSize: 8.5, padding: "1px 6px" }}>{m.role}</span>
+                       </div>
+                     ))}
+                   </div>
+                 )}
+                 {(!t.members || t.members.length === 0) && (
+                   <div className="sub" style={{ paddingLeft: 12, fontStyle: "italic" }}>No members assigned</div>
+                 )}
                </div>
             ))}
             <hr className="pmos-divider" />

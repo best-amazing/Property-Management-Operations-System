@@ -6,14 +6,14 @@ export const teamService = {
   findAll: () => prisma.team.findMany({
     include: {
       lead: { select: { id: true, username: true, display_name: true } },
-      members: { select: { id: true, username: true, display_name: true } },
+      members: { select: { id: true, username: true, display_name: true, role: true } },
     }
   }),
   findById: (id: string) => prisma.team.findUnique({
     where: { id },
     include: {
       lead: { select: { id: true, username: true, display_name: true } },
-      members: { select: { id: true, username: true, display_name: true } },
+      members: { select: { id: true, username: true, display_name: true, role: true } },
     }
   }),
   create: (data: any) => prisma.team.create({ data }),
