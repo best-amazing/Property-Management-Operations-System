@@ -2,6 +2,19 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+const PIPELINE_FIELDS = [
+  "label", "code", "stages", "tag_field",
+  "default_checklist", "department_id",
+] as const;
+
+const pickPipelineData = (data: any) => {
+  const out: any = {};
+  for (const key of PIPELINE_FIELDS) {
+    if (data[key] !== undefined) out[key] = data[key];
+  }
+  return out;
+};
+
 export const pipelineService = {
   findAll: () =>
     prisma.pipeline.findMany({
@@ -16,7 +29,7 @@ export const pipelineService = {
     }),
 
   create: (data: any) => {
-    const { department_id, ...rest } = data;
+    const { department_id, ...rest } = pickPipelineData(data);
     return prisma.pipeline.create({
       data: {
         ...rest,
@@ -27,7 +40,7 @@ export const pipelineService = {
   },
 
   update: (id: string, data: any) => {
-    const { department_id, ...rest } = data;
+    const { department_id, ...rest } = pickPipelineData(data);
     const updateData: any = { ...rest };
     if (department_id) {
       updateData.department = { connect: { id: department_id } };
