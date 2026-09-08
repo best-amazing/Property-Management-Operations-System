@@ -1,8 +1,20 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { PIPELINE_CATEGORY_FIELDS } from "./seedData";
+import { PIPELINE_CATEGORY_FIELDS, PIPELINE_TAG_FIELDS } from "./seedData";
 
 const prisma = new PrismaClient();
+
+// Default ticket-form content that mirrors the reference design. Property, Unit,
+// tag, and the pipeline's category dropdown come from the admin-editable
+// ticket_fields so admins can remove or relabel any of them.
+function catSelect(id: keyof typeof PIPELINE_CATEGORY_FIELDS) {
+  const cf = PIPELINE_CATEGORY_FIELDS[id];
+  return { key: "category", label: cf.label, type: "select" as const, options: cf.options };
+}
+function tagSelect(id: keyof typeof PIPELINE_TAG_FIELDS) {
+  const tf = PIPELINE_TAG_FIELDS[id];
+  return { key: "tag", label: tf.label, type: "select" as const, options: tf.options };
+}
 
 async function main() {
   console.log("🌱 Starting PMOS seed...");
@@ -43,9 +55,8 @@ async function main() {
       ticket_fields: [
         { key: "property", label: "Property", type: "text", required: true },
         { key: "unit", label: "Unit", type: "text" },
-        { key: "motivation", label: "Motivation", type: "select", options: ["Hot", "Warm", "Cold"] },
-        { key: "monthly_rent", label: "Monthly rent", type: "number" },
-        { key: "viewing_date", label: "Viewing date", type: "date" },
+        tagSelect("leasing"),
+        catSelect("leasing"),
       ],
     },
     {
@@ -64,9 +75,8 @@ async function main() {
       ticket_fields: [
         { key: "property", label: "Property", type: "text" },
         { key: "unit", label: "Unit", type: "text" },
-        { key: "category", label: "Category", type: "select", options: ["Plumbing", "Electrical", "HVAC", "General"] },
-        { key: "vendor", label: "Vendor", type: "text" },
-        { key: "estimated_cost", label: "Estimated cost", type: "number" },
+        tagSelect("maintenance"),
+        catSelect("maintenance"),
       ],
     },
     {
@@ -80,6 +90,13 @@ async function main() {
       default_checklist: ["Smoke detectors tested","All lights functioning","Plumbing leak-free","Doors/locks tested","Deep clean complete","Marketing photos taken"],
       department_id: departmentMap["Property Management"],
       created_by: "admin",
+      category_field: PIPELINE_CATEGORY_FIELDS.turns,
+      ticket_fields: [
+        { key: "property", label: "Property", type: "text" },
+        { key: "unit", label: "Unit", type: "text" },
+        tagSelect("turns"),
+        catSelect("turns"),
+      ],
     },
     {
       id: "escalation",
@@ -93,6 +110,13 @@ async function main() {
       default_checklist: ["Complaint documented","Facts verified (photos / witness / vendor report)","Notice delivered in writing"],
       department_id: departmentMap["Property Management"],
       created_by: "admin",
+      category_field: PIPELINE_CATEGORY_FIELDS.escalation,
+      ticket_fields: [
+        { key: "property", label: "Property", type: "text" },
+        { key: "unit", label: "Unit", type: "text" },
+        tagSelect("escalation"),
+        catSelect("escalation"),
+      ],
     },
     {
       id: "cold_calling",
@@ -156,19 +180,27 @@ async function main() {
   ];
 
   for (const u of usersData) {
-    const hash = await bcrypt.hash(u.password, 10);
-    await prisma.user.upsert({
-      where: { username: u.username },
-      update: { display_name: u.display_name, role: u.role, password_hash: hash, staff_type_id: u.staff_type_id },
-      create: {
-        username: u.username,
-        display_name: u.display_name,
-        password_hash: hash,
-        role: u.role,
-        staff_type_id: u.staff_type_id,
-      },
-    });
-    console.log(`  ✓ User: ${u.username} (${u.role})`);
+    const existing = await prisma.user.findUnique({ where: { username: u.username } });
+    if (!existing) {
+      const hash = await bcrypt.hash(u.password, 10);
+      await prisma.user.create({
+        data: {
+          username: u.username,
+          display_name: u.display_name,
+          password_hash: hash,
+          role: u.role,
+          staff_type_id: u.staff_type_id,
+        },
+      });
+      console.log(`  ✓ User created: ${u.username} (${u.role})`);
+    } else {
+      // Non-destructive: never overwrite an existing user's password, role, or
+      // staff type. Only sync the display name.
+      if (existing.display_name !== u.display_name) {
+        await prisma.user.update({ where: { username: u.username }, data: { display_name: u.display_name } });
+      }
+      console.log(`  - User exists, keeping credentials: ${u.username}`);
+    }
   }
 
   // ── 5. Teams ──────────────────────────────────────────────
@@ -183,9 +215,9 @@ async function main() {
   });
   console.log(`  ✓ Team: ${team.name}`);
 
-  // Assign PM staff to team
+  // Assign PM staff to team — only those not already on a team (non-destructive).
   await prisma.user.updateMany({
-    where: { role: "staff", staff_type_id: pmStaffType.id },
+    where: { role: "staff", staff_type_id: pmStaffType.id, team_id: null },
     data: { team_id: team.id }
   });
 
@@ -195,6 +227,7 @@ async function main() {
       pipeline_id: "leasing", stage_index: 2,
       title: "Maplewood #4B — Sarah Chen", property: "Maplewood Apartments", unit: "4B",
       tag: "Hot", assigned_to: "Priya Shah", team_id: team.id,
+      fields: { category: "Zillow" },
       checklist: [
         { label: "ID collected", done: false },
         { label: "Pay stubs / bank statements", done: false },
@@ -207,6 +240,7 @@ async function main() {
       pipeline_id: "leasing", stage_index: 0,
       title: "Oak St #1 — Marcus Webb", property: "Oak Street Duplex", unit: "1",
       tag: "Warm", assigned_to: "Jordan Lee", team_id: team.id,
+      fields: { category: "Referral" },
       checklist: [
         { label: "ID collected", done: false },
         { label: "Pay stubs / bank statements", done: false },
@@ -219,6 +253,7 @@ async function main() {
       pipeline_id: "maintenance", stage_index: 2,
       title: "Maplewood #4B — No heat", property: "Maplewood Apartments", unit: "4B",
       tag: "Emergency", assigned_to: "Vendor: ColdStar HVAC", team_id: team.id,
+      fields: { category: "HVAC" },
       checklist: [
         { label: "Photos before", done: false },
         { label: "Photos after", done: false },
@@ -231,6 +266,7 @@ async function main() {
       pipeline_id: "turns", stage_index: 3,
       title: "Maplewood #9C — Move-out turn", property: "Maplewood Apartments", unit: "9C",
       tag: "Standard", assigned_to: "Jordan Lee", team_id: team.id,
+      fields: { category: "Standard Turn" },
       checklist: [
         { label: "Smoke detectors tested", done: false },
         { label: "All lights functioning", done: false },
@@ -245,6 +281,7 @@ async function main() {
       pipeline_id: "escalation", stage_index: 0,
       title: "Oak St #2 — Late rent, 2nd month", property: "Oak Street Duplex", unit: "2",
       tag: "Severe", assigned_to: "admin", team_id: team.id,
+      fields: { category: "Non-payment" },
       checklist: [
         { label: "Complaint documented", done: false },
         { label: "Facts verified (photos / witness / vendor report)", done: false },
@@ -266,11 +303,21 @@ async function main() {
   ];
 
   for (const t of ticketsData) {
+    const tData = t as any;
     const existing = await prisma.ticket.findFirst({ where: { title: t.title } });
     if (!existing) {
-      await prisma.ticket.create({ data: t });
+      await prisma.ticket.create({ data: tData });
     } else {
-      console.log(`  - Ticket already exists, skipping: ${t.title}`);
+      // Non-destructive: only fill in a category chip if the ticket doesn't have
+      // one yet — never overwrite existing custom field values.
+      const pre = (existing.fields as Record<string, any>) ?? {};
+      const wantCategory = (tData.fields as Record<string, any> | undefined)?.category;
+      if (wantCategory !== undefined && pre["category"] === undefined) {
+        await prisma.ticket.update({ where: { id: existing.id }, data: { fields: { ...pre, category: wantCategory } } });
+        console.log(`  - Ticket exists, added category: ${t.title}`);
+      } else {
+        console.log(`  - Ticket already exists, skipped: ${t.title}`);
+      }
     }
   }
 
