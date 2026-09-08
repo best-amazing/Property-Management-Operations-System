@@ -70,7 +70,10 @@ export const userService = {
     return prisma.user.findUnique({ where: { id }, select: USER_SELECT });
   },
   delete: async (id: string) => {
-    await prisma.team.updateMany({ where: { lead_id: id }, data: { lead_id: null } });
-    return prisma.user.delete({ where: { id } });
+    return prisma.$transaction([
+      prisma.team.updateMany({ where: { lead_id: id }, data: { lead_id: null } }),
+      prisma.pendingLogin.deleteMany({ where: { userId: id } }),
+      prisma.user.delete({ where: { id } }),
+    ]);
   },
 };
