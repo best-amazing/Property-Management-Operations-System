@@ -21,8 +21,11 @@ export const ticketService = {
           if (user.display_name && !memberNames.includes(user.display_name)) {
             memberNames.push(user.display_name);
           }
+          // A team lead sees tickets assigned to members of their team (by
+          // assignee name). Do NOT broad-match by team_id, otherwise admin
+          // assigned or unassigned tickets that merely carry the team id leak
+          // into the lead's board.
           where.OR = [{ assigned_to: { in: memberNames } }];
-          if (user.team_id) where.OR.push({ team_id: user.team_id });
         }
       } else if (user.role === "staff") {
         // Staff only ever see their own tickets, regardless of their staff
