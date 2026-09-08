@@ -3,7 +3,7 @@ import prisma from "../utils/prisma";
 
 const PIPELINE_FIELDS = [
   "label", "code", "stages", "tag_field", "category_field",
-  "default_checklist", "department_id", "ticket_fields",
+  "default_checklist", "department_id", "ticket_fields", "created_by",
 ] as const;
 
 const pickPipelineData = (data: any) => {

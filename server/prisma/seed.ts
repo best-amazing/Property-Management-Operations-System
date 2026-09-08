@@ -4,9 +4,9 @@ import { PIPELINE_CATEGORY_FIELDS, PIPELINE_TAG_FIELDS } from "./seedData";
 
 const prisma = new PrismaClient();
 
-// Default ticket-form content that mirrors the reference design. Property, Unit,
-// tag, and the pipeline's category dropdown come from the admin-editable
-// ticket_fields so admins can remove or relabel any of them.
+// Default ticket-form content mirrors the reference design: Property, Unit, the
+// pipeline's tag (priority), and its category dropdown. All of these are
+// admin-editable ticket_fields, so an admin can remove or relabel any of them.
 function catSelect(id: keyof typeof PIPELINE_CATEGORY_FIELDS) {
   const cf = PIPELINE_CATEGORY_FIELDS[id];
   return { key: "category", label: cf.label, type: "select" as const, options: cf.options };
