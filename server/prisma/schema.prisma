@@ -56,6 +56,7 @@ model Pipeline {
   code              String
   stages            Json // array of stage names
   tag_field         Json // options and SLA days
+  category_field    Json? // options for the legacy category dropdown
   department_id     String
   department        Department @relation(fields: [department_id], references: [id])
   default_checklist Json // array of checklist items

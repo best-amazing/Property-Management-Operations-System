@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { PIPELINE_CATEGORY_FIELDS } from "./seedData";
 
 const prisma = new PrismaClient();
 
@@ -35,6 +36,7 @@ async function main() {
         { name: "Warm", swatch: "Pine",  slaDays: 4 },
         { name: "Cold", swatch: "Slate", slaDays: 7 },
       ]},
+      category_field: PIPELINE_CATEGORY_FIELDS.leasing,
       default_checklist: ["ID collected","Pay stubs / bank statements","Rental history checked","Background check run"],
       department_id: departmentMap["Property Management"],
       created_by: "admin",
@@ -55,6 +57,7 @@ async function main() {
         { name: "Urgent",    swatch: "Amber", slaDays: 2 },
         { name: "Routine",   swatch: "Pine",  slaDays: 7 },
       ]},
+      category_field: PIPELINE_CATEGORY_FIELDS.maintenance,
       default_checklist: ["Photos before","Photos after","Invoice uploaded","Tenant notified"],
       department_id: departmentMap["Property Management"],
       created_by: "admin",
@@ -109,7 +112,7 @@ async function main() {
   for (const p of pipelinesData) {
     await prisma.pipeline.upsert({
       where: { id: p.id },
-      update: { department_id: p.department_id, ticket_fields: p.ticket_fields },
+      update: { department_id: p.department_id, ticket_fields: p.ticket_fields, category_field: p.category_field },
       create: p,
     });
     console.log(`  ✓ Pipeline: ${p.label}`);

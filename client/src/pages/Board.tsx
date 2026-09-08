@@ -459,7 +459,9 @@ function NewTicketModal({ pipeline, stageIndex = 0, users, onClose, onCreated }:
 
   const fields = pipeline?.ticket_fields ?? [];
   const tagOptions = (pipeline?.tag_field as any)?.options ?? [];
-  const catOptions = (pipeline?.category_field as any)?.options ?? [];
+  const catOptions = (pipeline?.category_field as any)?.options?.length
+    ? (pipeline?.category_field as any)?.options
+    : ["General"];
 
   // Standard tag/priority selector is always available (drives SLA + overdue).
   // Pipeline-defined ticket fields become the rest of the form content.

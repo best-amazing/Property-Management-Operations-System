@@ -2,7 +2,7 @@
 import prisma from "../utils/prisma";
 
 const PIPELINE_FIELDS = [
-  "label", "code", "stages", "tag_field",
+  "label", "code", "stages", "tag_field", "category_field",
   "default_checklist", "department_id", "ticket_fields",
 ] as const;
 
