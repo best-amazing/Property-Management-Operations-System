@@ -42,6 +42,14 @@ export interface User {
 }
 
 // ─── Pipeline ─────────────────────────────────────────────────────────────────
+export interface PipelineField {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "select" | "date" | "number";
+  required?: boolean;
+  options?: string[];
+}
+
 export interface Pipeline {
   id: string;
   label: string;
@@ -55,6 +63,7 @@ export interface Pipeline {
     label: string;
     options: string[];
   };
+  ticket_fields?: PipelineField[];
   default_checklist: string[];
   department_id: string;
   department?: Department;
@@ -77,6 +86,7 @@ export interface Ticket {
   pipeline_id: string;
   team_id?: string | null;
   priority?: string | null;
+  fields?: Record<string, any>;
   created_at: string;
   stage_entered_at: string;
   completed_at?: string | null;
@@ -161,6 +171,7 @@ export interface CreatePipelineRequest {
   tag_field?: any;
   category_field?: any;
   default_checklist?: string[];
+  ticket_fields?: PipelineField[];
 }
 
 export interface UpdatePipelineRequest {
@@ -171,6 +182,7 @@ export interface UpdatePipelineRequest {
   tag_field?: any;
   category_field?: any;
   default_checklist?: string[];
+  ticket_fields?: PipelineField[];
 }
 
 export interface CreateTicketRequest {
@@ -185,6 +197,7 @@ export interface CreateTicketRequest {
   priority?: string;
   stage_index?: number;
   due_date?: string | null;
+  fields?: Record<string, any>;
 }
 
 export interface UpdateTicketRequest {
@@ -199,6 +212,7 @@ export interface UpdateTicketRequest {
   stage_index?: number;
   completed_at?: string | null;
   due_date?: string | null;
+  fields?: Record<string, any>;
 }
 
 export interface CreateNoteRequest {

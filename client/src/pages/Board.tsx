@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { pmosApi } from "../services/pmosApi";
-import { Pipeline, Ticket, User, Note, NoteActivity, ActivityItem } from "../types/pmos";
+import { Pipeline, Ticket, User, Note, NoteActivity, ActivityItem, PipelineField } from "../types/pmos";
 import { avatarSwatch, initials, ageDays, fmtDate } from "../utils/ui";
 import { usePipelines, useTickets, useUsers, useMe, useDepartments, QUERY_KEYS } from "../hooks/useApi";
 import toast from "react-hot-toast";
@@ -52,6 +52,9 @@ function TicketCard({ ticket, pipeline, index, onOpen }: {
               <span className="pmos-tag" style={{ background: sw.soft, color: sw.color }}>{ticket.tag}</span>
             )}
             {ticket.category && <span className="pmos-cat">{ticket.category}</span>}
+            {ticket.fields && Object.entries(ticket.fields).map(([k, v]) =>
+              v !== "" && v != null ? <span key={k} className="pmos-cat">{k}: {v}</span> : null
+            )}
           </div>
           <div className="cfoot">
             {ticket.assigned_to ? (
@@ -123,6 +126,7 @@ function TicketDrawer({ ticket, pipeline, users, me, onClose, onDeleted }: {
   const [stageIndex, setStageIndex] = useState(0);
   const [completedAt, setCompletedAt] = useState<string | null | undefined>(null);
   const [dueDate, setDueDate] = useState("");
+  const [fields, setFields] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   
   const canEdit = me?.role === "admin" || me?.role === "team_lead" || me?.staff_type?.permissions?.includes("edit");
@@ -140,9 +144,10 @@ function TicketDrawer({ ticket, pipeline, users, me, onClose, onDeleted }: {
       setStageIndex(ticket.stage_index);
       setCompletedAt(ticket.completed_at);
       setDueDate(ticket.due_date ? ticket.due_date.split('T')[0] : "");
+      setFields(ticket.fields ?? {});
       pmosApi.getNotes(ticket.id).then(setNotes).catch(() => {});
     } else {
-      setNotes([]); setTitle(""); setProperty(""); setUnit(""); setAssignedTo(""); setTag(""); setChecklist([]); setCompletedAt(null);
+      setNotes([]); setTitle(""); setProperty(""); setUnit(""); setAssignedTo(""); setTag(""); setChecklist([]); setCompletedAt(null); setFields({});
     }
   }, [ticket]);
 
@@ -182,7 +187,7 @@ function TicketDrawer({ ticket, pipeline, users, me, onClose, onDeleted }: {
     setSaving(true);
     try {
       const dueDateIso = dueDate ? new Date(dueDate + 'T00:00:00.000Z').toISOString() : null;
-      await pmosApi.updateTicket(ticket.id, { title, property, unit, assigned_to: assignedTo, tag, stage_index: stageIndex, due_date: dueDateIso });
+      await pmosApi.updateTicket(ticket.id, { title, property, unit, assigned_to: assignedTo, tag, stage_index: stageIndex, due_date: dueDateIso, fields });
       if (checklist.length > 0) {
         await pmosApi.updateChecklist(ticket.id, checklist);
       }
@@ -285,6 +290,33 @@ function TicketDrawer({ ticket, pipeline, users, me, onClose, onDeleted }: {
                 </select>
               </div>
             </div>
+            {((pipeline.ticket_fields as PipelineField[] | undefined) ?? []).length > 0 && (
+              <div className="pmos-custom-fields">
+                {((pipeline.ticket_fields as PipelineField[] | undefined) ?? []).map(f => {
+                  const val = fields[f.key] ?? "";
+                  const set = (v: any) => setFields(prev => ({ ...prev, [f.key]: v }));
+                  return (
+                    <div className="pmos-field" key={f.key}>
+                      <label>{f.label}</label>
+                      {f.type === "textarea" ? (
+                        <textarea value={val} onChange={e => set(e.target.value)} />
+                      ) : f.type === "select" ? (
+                        <select value={val} onChange={e => set(e.target.value)}>
+                          <option value="">—</option>
+                          {(f.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      ) : f.type === "date" ? (
+                        <input type="date" value={val} onChange={e => set(e.target.value)} />
+                      ) : f.type === "number" ? (
+                        <input type="number" value={val} onChange={e => set(e.target.value)} />
+                      ) : (
+                        <input value={val} onChange={e => set(e.target.value)} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             <div className="pmos-field">
               <label>Checklist</label>
               <div className="pmos-checklist">
@@ -420,23 +452,82 @@ function NewTicketModal({ pipeline, stageIndex = 0, users, onClose, onCreated }:
   pipeline: Pipeline | null; stageIndex?: number; users: User[]; onClose: () => void; onCreated: (t: Ticket) => void;
 }) {
   const [title, setTitle] = useState("");
-  const [property, setProperty] = useState("");
-  const [unit, setUnit] = useState("");
   const [tag, setTag] = useState("");
-  const [category, setCategory] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [values, setValues] = useState<Record<string, any>>({});
+
+  const fields = pipeline?.ticket_fields ?? [];
+  const tagOptions = (pipeline?.tag_field as any)?.options ?? [];
+  const catOptions = (pipeline?.category_field as any)?.options ?? [];
+
+  // Standard tag/priority selector is always available (drives SLA + overdue).
+  // Pipeline-defined ticket fields become the rest of the form content.
 
   const create = async () => {
     if (!pipeline || !title.trim()) return;
-    const ticket = await pmosApi.createTicket({ title, property, unit, tag, category, assigned_to: assignedTo, pipeline_id: pipeline.id, stage_index: stageIndex, due_date: dueDate ? new Date(dueDate + 'T00:00:00.000Z').toISOString() : undefined });
+    const payload: any = {
+      title,
+      tag,
+      assigned_to: assignedTo,
+      pipeline_id: pipeline.id,
+      stage_index: stageIndex,
+      due_date: dueDate ? new Date(dueDate + 'T00:00:00.000Z').toISOString() : undefined,
+      fields: { ...values },
+    };
+    const ticket = await pmosApi.createTicket(payload);
     onCreated(ticket);
     onClose();
   };
 
+  const setValue = (key: string, v: any) => setValues(prev => ({ ...prev, [key]: v }));
+
+  const renderField = (f: PipelineField) => {
+    const val = values[f.key] ?? "";
+    const required = f.required ? <span style={{ color: "#c00" }}>*</span> : null;
+    switch (f.type) {
+      case "textarea":
+        return (
+          <div className="pmos-field" key={f.key}>
+            <label>{f.label} {required}</label>
+            <textarea value={val} onChange={e => setValue(f.key, e.target.value)} />
+          </div>
+        );
+      case "select":
+        return (
+          <div className="pmos-field" key={f.key}>
+            <label>{f.label} {required}</label>
+            <select value={val} onChange={e => setValue(f.key, e.target.value)}>
+              <option value="">—</option>
+              {(f.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+        );
+      case "date":
+        return (
+          <div className="pmos-field" key={f.key}>
+            <label>{f.label} {required}</label>
+            <input type="date" value={val} onChange={e => setValue(f.key, e.target.value)} />
+          </div>
+        );
+      case "number":
+        return (
+          <div className="pmos-field" key={f.key}>
+            <label>{f.label} {required}</label>
+            <input type="number" value={val} onChange={e => setValue(f.key, e.target.value)} />
+          </div>
+        );
+      default:
+        return (
+          <div className="pmos-field" key={f.key}>
+            <label>{f.label} {required}</label>
+            <input value={val} onChange={e => setValue(f.key, e.target.value)} />
+          </div>
+        );
+    }
+  };
+
   if (!pipeline) return null;
-  const tagOptions = (pipeline.tag_field as any)?.options ?? [];
-  const catOptions = (pipeline.category_field as any)?.options ?? [];
 
   return (
     <div className="pmos-modal-bg show" onClick={onClose}>
@@ -452,29 +543,39 @@ function NewTicketModal({ pipeline, stageIndex = 0, users, onClose, onCreated }:
             autoFocus
           />
         </div>
-        <div className="pmos-row2">
-          <div className="pmos-field">
-            <label>Property</label>
-            <input id="n-property" value={property} onChange={e => setProperty(e.target.value)} />
-          </div>
-          <div className="pmos-field">
-            <label>Unit</label>
-            <input id="n-unit" value={unit} onChange={e => setUnit(e.target.value)} />
-          </div>
-        </div>
-        <div className="pmos-row2">
-          <div className="pmos-field">
-            <label>{(pipeline.tag_field as any)?.label ?? "Tag"}</label>
-            <select id="n-tag" value={tag} onChange={e => setTag(e.target.value)}>
-              {tagOptions.map((o: any) => <option key={o.name} value={o.name}>{o.name}</option>)}
-            </select>
-          </div>
-          <div className="pmos-field">
-            <label>{(pipeline.category_field as any)?.label ?? "Category"}</label>
-            <select id="n-category" value={category} onChange={e => setCategory(e.target.value)}>
-              {catOptions.map((o: string) => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
+
+        {fields.length > 0 ? (
+          fields.map(f => renderField(f))
+        ) : (
+          <>
+            <div className="pmos-row2">
+              <div className="pmos-field">
+                <label>Property</label>
+                <input id="n-property" value={values["property"] ?? ""} onChange={e => setValue("property", e.target.value)} />
+              </div>
+              <div className="pmos-field">
+                <label>Unit</label>
+                <input id="n-unit" value={values["unit"] ?? ""} onChange={e => setValue("unit", e.target.value)} />
+              </div>
+            </div>
+            <div className="pmos-row2">
+              <div className="pmos-field">
+                <label>{(pipeline.category_field as any)?.label ?? "Category"}</label>
+                <select id="n-category" value={values["category"] ?? ""} onChange={e => setValue("category", e.target.value)}>
+                  <option value="">—</option>
+                  {catOptions.map((o: string) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="pmos-field">
+          <label>{(pipeline.tag_field as any)?.label ?? "Priority"}</label>
+          <select value={tag} onChange={e => setTag(e.target.value)}>
+            <option value="">—</option>
+            {tagOptions.map((o: any) => <option key={o.name} value={o.name}>{o.name}</option>)}
+          </select>
         </div>
         <div className="pmos-field">
           <label>Assigned To</label>

@@ -47,24 +47,54 @@ export const ticketService = {
       : null;
     const stages = pipeline?.stages as any[] | undefined;
     const stageIndex = data.stage_index ?? 0;
-    data.stage_index = stageIndex;
-    data.stage_entered_at = data.stage_entered_at || new Date();
-    if (!data.checklist) {
-      const defaultChecklist = pipeline?.default_checklist as any[] | undefined;
-      data.checklist = defaultChecklist ? defaultChecklist.map((label: any) => ({ label, done: false })) : [];
+
+    const defaultChecklist = pipeline?.default_checklist as any[] | undefined;
+    const checklist = data.checklist
+      ? data.checklist
+      : (defaultChecklist ? defaultChecklist.map((label: any) => ({ label, done: false })) : []);
+
+    const history = data.history
+      ? data.history
+      : [{
+          stage_index: stageIndex,
+          stage_name: stages?.[stageIndex] ?? String(stageIndex),
+          entered_at: new Date().toISOString(),
+          user: data.created_by || "system",
+        }];
+
+    // Fold everything that isn't a dedicated column into the custom `fields`
+    // JSON object (e.g. category, motivation, custom pipeline fields).
+    const KNOWN_COLUMNS = [
+      "title", "property", "unit", "tag", "priority", "due_date",
+      "assigned_to", "stage_index", "pipeline_id", "team_id",
+      "checklist", "history", "created_by", "fields",
+    ];
+    const fields: any = { ...(data.fields || {}) };
+    for (const key of Object.keys(data)) {
+      if (!KNOWN_COLUMNS.includes(key) && data[key] !== undefined) {
+        fields[key] = data[key];
+      }
     }
-    if (!data.history) {
-      data.history = [{
+
+    const ticket = await prisma.ticket.create({
+      data: {
+        pipeline_id: data.pipeline_id,
+        title: data.title,
+        property: data.property ?? null,
+        unit: data.unit ?? null,
+        tag: data.tag ?? null,
+        priority: data.priority ?? null,
+        due_date: data.due_date ?? null,
+        assigned_to: data.assigned_to ?? null,
+        team_id: data.team_id ?? null,
         stage_index: stageIndex,
-        stage_name: stages?.[stageIndex] ?? String(stageIndex),
-        entered_at: new Date().toISOString(),
-        user: data.created_by || "system",
-      }];
-    }
-    if (stages && stageIndex === stages.length - 1) {
-      data.completed_at = data.completed_at || new Date();
-    }
-    const ticket = await prisma.ticket.create({ data });
+        checklist,
+        history,
+        stage_entered_at: new Date(),
+        completed_at: (stages && stageIndex === stages.length - 1) ? new Date() : null,
+        fields,
+      },
+    });
     if (ticket.assigned_to) {
       console.log(`[notification] ticket created id=${ticket.id} assigned_to=${ticket.assigned_to}`);
       const email = await resolveAssigneeEmail(ticket.assigned_to);
@@ -92,6 +122,7 @@ export const ticketService = {
         property: true,
         unit: true,
         due_date: true,
+        fields: true,
       },
     });
     if (!existing) {
@@ -118,6 +149,10 @@ export const ticketService = {
       } else if (existing.stage_index === lastIndex) {
         data.completed_at = null;
       }
+    }
+
+    if (data.fields !== undefined) {
+      data.fields = { ...(existing.fields as any), ...data.fields };
     }
 
     const updated = await prisma.ticket.update({ where: { id }, data });

@@ -59,6 +59,7 @@ model Pipeline {
   department_id     String
   department        Department @relation(fields: [department_id], references: [id])
   default_checklist Json // array of checklist items
+  ticket_fields     Json? // array of custom fields shown on the ticket form
   created_by        String
   created_at        DateTime   @default(now())
 
@@ -82,6 +83,7 @@ model Ticket {
   team_id          String?
   team             Team?     @relation(fields: [team_id], references: [id])
   priority         String?
+  fields           Json? // custom field values (from pipeline.ticket_fields)
 
   pipeline_id String
   pipeline    Pipeline @relation(fields: [pipeline_id], references: [id])

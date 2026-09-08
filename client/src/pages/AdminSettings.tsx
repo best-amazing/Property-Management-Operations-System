@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { pmosApi } from "../services/pmosApi";
-import { User, Pipeline, Department, Team } from "../types/pmos";
+import { User, Pipeline, Department, Team, PipelineField } from "../types/pmos";
+import { FieldBuilder } from "../components/FieldBuilder";
 import { avatarSwatch, initials } from "../utils/ui";
 import { usePipelines, useUsers, useStaffTypes, useTeams, useDepartments, QUERY_KEYS } from "../hooks/useApi";
 
@@ -92,6 +93,7 @@ export const AdminSettings: React.FC = () => {
   const [svcCatLabel, setSvcCatLabel] = useState("Category");
   const [svcCatOptions, setSvcCatOptions] = useState("");
   const [svcChecklist, setSvcChecklist] = useState("");
+  const [svcFields, setSvcFields] = useState<PipelineField[]>([]);
 
   // ── Pipeline edit state ───────────────────────────────────────────────────
   const [editingPipelineId, setEditingPipelineId] = useState<string | null>(null);
@@ -104,6 +106,7 @@ export const AdminSettings: React.FC = () => {
   const [editSvcCatLabel, setEditSvcCatLabel] = useState("Category");
   const [editSvcCatOptions, setEditSvcCatOptions] = useState("");
   const [editSvcChecklist, setEditSvcChecklist] = useState("");
+  const [editSvcFields, setEditSvcFields] = useState<PipelineField[]>([]);
 
   useEffect(() => {
     if (usersError) navigate("/login");
@@ -297,11 +300,12 @@ export const AdminSettings: React.FC = () => {
       tag_field: { label: svcTagLabel.trim() || "Priority", options: finalTagOptions },
       category_field: { label: svcCatLabel.trim() || "Category", options: catOptions.length ? catOptions : ["General"] },
       default_checklist: defaultChecklist,
+      ticket_fields: svcFields.filter(f => f.label.trim() || f.key.trim()),
     });
     toast.success("Pipeline created");
     setSvcName(""); setSvcCode(""); setSvcDeptId(""); setSvcStages(["", "", ""]); setSvcTagLabel("Priority");
     setSvcTags([{ name: "Standard", swatch: "Pine", sla: 5 }, { name: "Rush", swatch: "Amber", sla: 2 }]);
-    setSvcCatLabel("Category"); setSvcCatOptions(""); setSvcChecklist("");
+    setSvcCatLabel("Category"); setSvcCatOptions(""); setSvcChecklist(""); setSvcFields([]);
     qc.invalidateQueries({ queryKey: QUERY_KEYS.pipelines });
     qc.invalidateQueries({ queryKey: QUERY_KEYS.departments });
   };
@@ -338,6 +342,7 @@ export const AdminSettings: React.FC = () => {
     setEditSvcCatLabel((p.category_field as any)?.label ?? "Category");
     setEditSvcCatOptions(((p.category_field as any)?.options ?? []).join(", "));
     setEditSvcChecklist((p.default_checklist ?? []).join("\n"));
+    setEditSvcFields((p.ticket_fields as PipelineField[] | undefined) ?? []);
   };
 
   const handleUpdatePipeline = async () => {
@@ -359,6 +364,7 @@ export const AdminSettings: React.FC = () => {
       tag_field: { label: editSvcTagLabel.trim() || "Priority", options: finalTagOptions },
       category_field: { label: editSvcCatLabel.trim() || "Category", options: catOptions.length ? catOptions : ["General"] },
       default_checklist: defaultChecklist,
+      ticket_fields: editSvcFields.filter(f => f.label.trim() || f.key.trim()),
     });
     setEditingPipelineId(null);
     toast.success("Pipeline updated");
@@ -771,6 +777,7 @@ export const AdminSettings: React.FC = () => {
                         <div className="pmos-field" style={{ margin: 0 }}><label>Category options (comma separated)</label><input value={editSvcCatOptions} onChange={e => setEditSvcCatOptions(e.target.value)} /></div>
                       </div>
                       <div className="pmos-field" style={{ margin: 0 }}><label>Default checklist (one per line)</label><textarea value={editSvcChecklist} onChange={e => setEditSvcChecklist(e.target.value)} /></div>
+                      <FieldBuilder fields={editSvcFields} onChange={setEditSvcFields} />
                       <div style={{ display: "flex", gap: 6 }}>
                         <button className="pmos-btn primary sm" onClick={handleUpdatePipeline}>Save</button>
                         <button className="pmos-btn sm" onClick={() => setEditingPipelineId(null)}>Cancel</button>
@@ -837,6 +844,7 @@ export const AdminSettings: React.FC = () => {
               <div className="pmos-field"><label>Category options (comma separated)</label><input placeholder="e.g. Roofing, Painting, Landscaping" value={svcCatOptions} onChange={e => setSvcCatOptions(e.target.value)} /></div>
             </div>
             <div className="pmos-field"><label>Default checklist (one item per line)</label><textarea placeholder="One checklist item per line" value={svcChecklist} onChange={e => setSvcChecklist(e.target.value)} /></div>
+            <FieldBuilder fields={svcFields} onChange={setSvcFields} />
             <div className="pmos-modal-actions">
               <button className="pmos-btn primary" onClick={handleCreatePipeline}>Create pipeline</button>
             </div>

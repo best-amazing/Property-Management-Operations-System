@@ -38,6 +38,13 @@ async function main() {
       default_checklist: ["ID collected","Pay stubs / bank statements","Rental history checked","Background check run"],
       department_id: departmentMap["Property Management"],
       created_by: "admin",
+      ticket_fields: [
+        { key: "property", label: "Property", type: "text", required: true },
+        { key: "unit", label: "Unit", type: "text" },
+        { key: "motivation", label: "Motivation", type: "select", options: ["Hot", "Warm", "Cold"] },
+        { key: "monthly_rent", label: "Monthly rent", type: "number" },
+        { key: "viewing_date", label: "Viewing date", type: "date" },
+      ],
     },
     {
       id: "maintenance",
@@ -51,6 +58,13 @@ async function main() {
       default_checklist: ["Photos before","Photos after","Invoice uploaded","Tenant notified"],
       department_id: departmentMap["Property Management"],
       created_by: "admin",
+      ticket_fields: [
+        { key: "property", label: "Property", type: "text" },
+        { key: "unit", label: "Unit", type: "text" },
+        { key: "category", label: "Category", type: "select", options: ["Plumbing", "Electrical", "HVAC", "General"] },
+        { key: "vendor", label: "Vendor", type: "text" },
+        { key: "estimated_cost", label: "Estimated cost", type: "number" },
+      ],
     },
     {
       id: "turns",
@@ -95,7 +109,7 @@ async function main() {
   for (const p of pipelinesData) {
     await prisma.pipeline.upsert({
       where: { id: p.id },
-      update: { department_id: p.department_id },
+      update: { department_id: p.department_id, ticket_fields: p.ticket_fields },
       create: p,
     });
     console.log(`  ✓ Pipeline: ${p.label}`);
