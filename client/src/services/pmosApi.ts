@@ -52,7 +52,7 @@ export const pmosApi = {
     pmosApi.request<void>(`/admin/users/${id}`, { method: "DELETE" }),
 
   // ─── Departments ──────────────────────────────────────────────────────────
-  getDepartments: () => pmosApi.request<Department[]>("/admin/departments"),
+  getDepartments: () => pmosApi.request<Department[]>("/client/departments"),
   createDepartment: (data: CreateDepartmentRequest) =>
     pmosApi.request<Department>("/admin/departments", { method: "POST", body: JSON.stringify(data) }),
   updateDepartment: (id: string, data: UpdateDepartmentRequest) =>
