@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import { notifyNoteAdded, resolveAssigneeEmail } from "./notification.service";
 
-const prisma = new PrismaClient();
+import prisma from "../utils/prisma";
 
 export const noteService = {
   findAllByTicket: (ticketId: string) => prisma.note.findMany({ where: { ticket_id: ticketId } }),

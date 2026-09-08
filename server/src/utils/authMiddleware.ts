@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import prisma from "../utils/prisma";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
@@ -43,9 +44,6 @@ export const requirePermission = (permission: string) => {
         res.status(403).json({ error: "Forbidden. No permissions assigned." });
         return;
       }
-      
-      const { PrismaClient } = await import("@prisma/client");
-      const prisma = new PrismaClient();
       
       const staffType = await prisma.staffType.findUnique({
         where: { id: user.staff_type_id }

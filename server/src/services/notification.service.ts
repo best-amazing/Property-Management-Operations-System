@@ -1,8 +1,7 @@
 // services/notification.service.ts
-import { PrismaClient } from "@prisma/client";
 import { sendEmail } from "./mailer";
 
-const prisma = new PrismaClient();
+import prisma from "../utils/prisma";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

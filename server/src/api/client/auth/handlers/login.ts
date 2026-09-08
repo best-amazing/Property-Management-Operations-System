@@ -1,12 +1,11 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
 import { userService } from "../../../../services/user.service";
 import { generateOtp } from "../../../../utils/otp";
 import { sendOtpEmail } from "../../../../services/mailer";
 
-const prisma = new PrismaClient();
+import prisma from "../../../../utils/prisma";
 
 export const loginHandler = async (req: Request, res: Response): Promise<void> => {
   try {

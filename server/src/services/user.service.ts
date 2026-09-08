@@ -1,8 +1,7 @@
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { syncTeamLead } from "./team.service";
 
-const prisma = new PrismaClient();
+import prisma from "../utils/prisma";
 
 const USER_SELECT = {
   id: true, username: true, display_name: true, role: true,

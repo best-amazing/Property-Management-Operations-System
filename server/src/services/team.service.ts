@@ -1,6 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+import prisma from "../utils/prisma";
 
 const TEAM_INCLUDE = {
   lead: { select: { id: true, username: true, display_name: true } },

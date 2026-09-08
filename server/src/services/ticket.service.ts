@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import { notifyTicketAssigned, notifyTicketStatusUpdated, resolveAssigneeEmail } from "./notification.service";
 
-const prisma = new PrismaClient();
+import prisma from "../utils/prisma";
 
 export const ticketService = {
   findAllByPipeline: async (pipelineId: string, user?: any, explicitAssignedTo?: string) => {
