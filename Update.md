@@ -243,3 +243,7 @@ The existing board layout should remain largely the same. The major change is th
 
 ```
 ```
+
+- Add departments to the team lead dashboard
+- Seems staff can see staff can see other peoples ticket not just theirs
+- Also when i login i need to refresh for the dashboard to change

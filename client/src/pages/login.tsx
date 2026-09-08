@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { pmosApi } from "../services/pmosApi";
 
 export const Login: React.FC = () => {
@@ -11,6 +12,7 @@ export const Login: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (localStorage.getItem("token")) navigate("/");
@@ -42,6 +44,9 @@ export const Login: React.FC = () => {
     try {
       const { token } = await pmosApi.verifyOtp({ loginSessionToken, code });
       localStorage.setItem("token", token);
+      // Clear any queries cached from a previous user/session so the dashboard
+      // reloads for the newly logged-in account without a manual refresh.
+      qc.clear();
       navigate("/");
     } catch (e: any) {
       setError(e.message || "Invalid code.");

@@ -521,8 +521,10 @@ export const Board: React.FC = () => {
   const { data: departments = [] } = useDepartments();
   const { data: tickets = [], isLoading: ticketsLoading } = useTickets(activePipelineId, filterMine);
 
-  // RBAC: filter pipelines based on role and staff type permissions
-  const isPrivileged = me?.role === "admin";
+  // RBAC: filter pipelines based on role and staff type permissions.
+  // Team leads see the full department/pipeline navigation like an admin
+  // (tickets remain scoped to their team on the server).
+  const isPrivileged = me?.role === "admin" || me?.role === "team_lead";
   const isTeamLead = me?.role === "team_lead";
 
   // A Team Lead's board scope = the union of their team members' staff type scopes.

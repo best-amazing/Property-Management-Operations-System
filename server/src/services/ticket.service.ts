@@ -25,27 +25,13 @@ export const ticketService = {
           if (user.team_id) where.OR.push({ team_id: user.team_id });
         }
       } else if (user.role === "staff") {
-        const staffType = user.staff_type_id ? await prisma.staffType.findUnique({ where: { id: user.staff_type_id } }) : null;
-        const allowedPipelines = (staffType?.allowed_pipelines as string[]) || [];
-        const allowedDepts = (staffType?.allowed_departments as string[]) || [];
-        
+        // Staff only ever see their own tickets, regardless of their staff
+        // type's department/pipeline permissions. Those lists control which
+        // boards they can navigate to, not which tickets they can see.
         if (!explicitAssignedTo) {
-          // By default staff only see their own tickets
           where.OR = [
             { assigned_to: user.display_name }
           ];
-          
-          // But if they have access to the pipeline (directly or via dept), they can see all tickets in it
-          if (allowedPipelines.length > 0 || allowedDepts.length > 0) {
-            const pipeline = await prisma.pipeline.findUnique({ where: { id: pipelineId } });
-            if (pipeline) {
-              const hasAccess = allowedPipelines.includes(pipeline.id) || allowedDepts.includes(pipeline.department_id);
-              if (hasAccess) {
-                // Remove the OR filter so they see everything in this pipeline
-                delete where.OR;
-              }
-            }
-          }
         }
       }
     }
