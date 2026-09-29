@@ -5,6 +5,8 @@ import { Login } from "./pages/login";
 import { Board } from "./pages/Board";
 import { History } from "./pages/History";
 import { AdminSettings } from "./pages/AdminSettings";
+import { ContactsDirectory } from "./pages/ContactsDirectory";
+import { KnowledgeDashboard } from "./pages/KnowledgeDashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,6 +27,8 @@ export default function App() {
           <Route path="/" element={<Board />} />
           <Route path="/history" element={<History />} />
           <Route path="/admin" element={<AdminSettings />} />
+          <Route path="/directory" element={<ContactsDirectory />} />
+          <Route path="/dashboard" element={<KnowledgeDashboard />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

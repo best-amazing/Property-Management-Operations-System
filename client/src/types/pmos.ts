@@ -242,3 +242,149 @@ export interface NoteActivity {
 }
 
 export type ActivityItem = NoteActivity | StageTransition;
+
+// ─── Contact Database ─────────────────────────────────────────────────────────
+export interface ContactType {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface Property {
+  id: string;
+  name: string;
+  city?: string;
+  state?: string;
+}
+
+export interface PropertyContact {
+  contact_id: string;
+  property_id: string;
+  property?: Property;
+  contact?: Contact;
+}
+
+export interface Contact {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  mailing_address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  notes?: string;
+  status: string;
+  type_id: string;
+  contact_type?: ContactType;
+  properties?: PropertyContact[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateContactRequest {
+  name: string;
+  phone?: string;
+  email?: string;
+  mailing_address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  notes?: string;
+  type_id: string;
+}
+
+export interface UpdateContactRequest {
+  name?: string;
+  phone?: string;
+  email?: string;
+  mailing_address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  notes?: string;
+  status?: string;
+  type_id?: string;
+}
+
+// ─── Policies & Dashboard ─────────────────────────────────────────────────────
+export interface PolicyCategory {
+  id: string;
+  name: string;
+  order: number;
+  policies?: Policy[];
+}
+
+export interface Policy {
+  id: string;
+  title: string;
+  content: string;
+  status: string;
+  category_id: string;
+  category?: PolicyCategory;
+  order: number;
+  attachments?: string[];
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePolicyCategoryRequest {
+  name: string;
+  order?: number;
+}
+
+export interface CreatePolicyRequest2 {
+  title: string;
+  content: string;
+  category_id: string;
+  order?: number;
+  attachments?: string[];
+}
+
+export interface UpdatePolicyRequest2 {
+  title?: string;
+  content?: string;
+  status?: string;
+  category_id?: string;
+  order?: number;
+  attachments?: string[];
+}
+
+// ─── Announcements ────────────────────────────────────────────────────────────
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  priority: "normal" | "important" | "urgent";
+  target_type: "all" | "user" | "team" | "staff_type";
+  target_id?: string;
+  require_ack: boolean;
+  publish_at: string;
+  expires_at?: string;
+  created_by: string;
+  created_at: string;
+  receipts?: AnnouncementReceipt[];
+}
+
+export interface AnnouncementReceipt {
+  id: string;
+  announcement_id: string;
+  announcement?: Announcement;
+  user_id: string;
+  user?: User;
+  status: "delivered" | "viewed" | "acknowledged";
+  viewed_at?: string;
+  ack_at?: string;
+}
+
+export interface CreateAnnouncementRequest {
+  title: string;
+  content: string;
+  priority?: "normal" | "important" | "urgent";
+  target_type: "all" | "user" | "team" | "staff_type";
+  target_id?: string;
+  require_ack?: boolean;
+  publish_at?: string;
+  expires_at?: string;
+}

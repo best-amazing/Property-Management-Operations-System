@@ -1,0 +1,424 @@
+# New Task – Property Management Information, Contacts & Staff Communication System
+
+## 1. Contact Database / Directory
+
+Add a centralized database system for storing and managing contact information related to property management and company operations.
+
+The system should support contacts such as:
+
+* Contractors
+* Tenants
+* Property Managers
+* Maintenance Vendors
+* Leasing Agents
+* Owners
+* Inspectors
+* Attorneys
+* City/County contacts
+* Utility companies
+* Other property-related contacts
+
+### Contact Information
+
+The database should support fields such as:
+
+* Full Name / Company Name
+* Contact Type
+* Phone Number
+* Email Address
+* Mailing Address
+* City
+* State
+* ZIP Code
+* Property/Properties Associated With
+* Notes
+* Status
+* Date Added
+* Last Updated
+
+The Admin should be able to create, edit, archive, and manage contacts.
+
+### Geographic Organization
+
+Contacts should be searchable and filterable by:
+
+* City
+* State
+* ZIP Code
+* Contact Type
+* Associated Property
+
+For example:
+
+**City:** Milwaukee
+**State:** Wisconsin
+**Contact Type:** Contractor
+
+The system should return contractors associated with Milwaukee, Wisconsin.
+
+The same contact should be able to be associated with multiple properties where applicable.
+
+---
+
+# 2. Property Management Staff Dashboard
+
+Within the **Property Management** area, create a dedicated informational dashboard for staff.
+
+The dashboard should provide staff with easy access to company information, policies, procedures, and processing documentation.
+
+This dashboard is primarily **informational**.
+
+Staff should be able to view the information but should not be able to modify the official company policies or documentation.
+
+---
+
+## 3. Company Policies
+
+The Admin should have an area where company policies can be created and maintained.
+
+Examples could include:
+
+* Property Management Policies
+* Communication Policies
+* Tenant Communication Procedures
+* Maintenance Procedures
+* Emergency Procedures
+* Vendor Procedures
+* Leasing Procedures
+* Inspection Procedures
+* Documentation Requirements
+* Employee/Staff Policies
+
+The Admin enters and maintains the information from the Admin panel.
+
+Once published, the information should automatically appear on the appropriate staff dashboard.
+
+### Admin Controls
+
+Admin should be able to:
+
+* Create policies
+* Edit policies
+* Publish policies
+* Unpublish policies
+* Archive policies
+* Organize policies by category
+* Add descriptions
+* Add supporting documentation
+* Control the order in which information appears
+
+---
+
+# 4. Processing System Documentation
+
+The Property Management dashboard should also contain documentation explaining the company's processing systems and procedures.
+
+This documentation should be available to **all applicable staff types** who have access to the Property Management dashboard.
+
+Examples:
+
+* How to process a maintenance request
+* How to process a new tenant
+* How to process a move-in
+* How to process a move-out
+* How to process a lease
+* How to process a vendor request
+* How to handle an emergency
+* How to document property inspections
+* How to escalate an issue
+* How to process tenant notices
+* How to document completed work
+
+The Admin should control the content.
+
+Staff should primarily have **read/view access** to this documentation.
+
+The purpose is to provide staff with a centralized reference point so they can understand how the company's systems and procedures are expected to be handled.
+
+---
+
+# 5. Dashboard Organization
+
+The Property Management informational dashboard should be organized clearly so staff can quickly find information.
+
+Example structure:
+
+**Property Management Dashboard**
+
+* Company Policies
+* Processing Procedures
+* Property Management Documentation
+* Maintenance Procedures
+* Leasing Procedures
+* Tenant Procedures
+* Vendor Procedures
+* Emergency Procedures
+* Frequently Used Resources
+* Announcements
+* Important Messages
+
+The exact categories should be configurable by the Admin rather than permanently hard-coded.
+
+---
+
+# 6. Newsletter / Announcement System
+
+Add a company-wide newsletter and announcement feature.
+
+This system should allow Administrators to communicate important information directly to staff.
+
+Announcements could include:
+
+* Company events
+* Meetings
+* Policy updates
+* Task reminders
+* Important deadlines
+* System updates
+* Training announcements
+* General company messages
+* Property Management updates
+* Administrative instructions
+
+Announcements should appear on the appropriate staff dashboard.
+
+---
+
+# 7. Targeted Admin Messages
+
+The Admin should be able to determine exactly who receives an announcement or message.
+
+The Admin should be able to target:
+
+### All Staff
+
+Example:
+
+> Company meeting scheduled for Friday at 10:00 AM.
+
+The announcement is visible to everyone.
+
+### Specific Staff Member
+
+Example:
+
+> Jed, please review the Marloes property documentation.
+
+Only the selected staff member should receive the targeted message.
+
+### Team
+
+Example:
+
+> Property Management Team: Please complete all outstanding maintenance updates by Friday.
+
+The message is delivered to members of the selected team.
+
+### Staff Type
+
+The Admin should also be able to target a specific Staff Type where applicable.
+
+For example:
+
+* Property Managers
+* Maintenance Staff
+* Leasing Staff
+* Acquisition Staff
+* Administrative Staff
+
+---
+
+# 8. Announcement Priority
+
+The Admin should be able to designate the importance of an announcement.
+
+Possible levels:
+
+* Normal
+* Important
+* Urgent
+
+Urgent announcements should be visually distinguishable and should appear prominently on the recipient's dashboard.
+
+---
+
+# 9. Announcement Status / Acknowledgment
+
+The system should track whether staff members have viewed an announcement.
+
+For targeted messages, Admin should be able to see:
+
+* Sent
+* Delivered
+* Viewed
+* Acknowledged, where acknowledgment is required
+
+The Admin should optionally be able to require staff acknowledgment.
+
+For example:
+
+> "Please acknowledge that you have reviewed the updated Property Management Policy."
+
+The system should record the staff member's acknowledgment and the date/time it occurred.
+
+---
+
+# 10. Scheduled Announcements
+
+The Admin should have the ability to schedule announcements for a future date and time.
+
+For example:
+
+**Announcement:** Staff Meeting
+**Publish Date:** October 5
+**Time:** 9:00 AM
+**Audience:** All Staff
+
+The system automatically publishes the announcement at the scheduled time.
+
+The Admin should also be able to set an expiration date for temporary announcements.
+
+---
+
+# 11. Notifications
+
+When an Admin sends a targeted message, the system should notify the intended recipient(s).
+
+Notifications should be available through the application.
+
+Where the system supports it, the architecture should also allow for future email or other notification integrations without requiring the announcement system to be rebuilt.
+
+The notification should clearly identify:
+
+* Sender
+* Message
+* Date/time
+* Priority
+* Intended audience
+
+---
+
+# 12. Admin Management
+
+The Admin panel should provide a centralized management area for:
+
+### Contacts
+
+* Add contact
+* Edit contact
+* Archive contact
+* Search contacts
+* Filter contacts
+* Associate contacts with properties
+* Categorize by contact type
+* Filter by city/state
+
+### Policies & Documentation
+
+* Create
+* Edit
+* Publish
+* Unpublish
+* Archive
+* Categorize
+* Reorder
+* Attach supporting documents
+
+### Announcements
+
+* Create announcement
+* Select recipients
+* Select teams
+* Select staff types
+* Set priority
+* Schedule publication
+* Set expiration
+* Require acknowledgment
+* Edit/cancel scheduled announcements
+* View delivery/view status
+
+---
+
+# 13. Important Requirement – Nothing Should Be Hard-Coded
+
+The system should be designed so that the Admin can manage the content through the application.
+
+For example, the following should not require a developer to modify the code:
+
+* Adding a new contact type
+* Adding a new city/state category
+* Creating a new policy category
+* Creating new processing documentation categories
+* Creating announcements
+* Creating teams
+* Selecting announcement audiences
+* Adding staff to teams
+* Creating new informational dashboard sections
+
+The underlying system should use configurable database records rather than hard-coded categories wherever practical.
+
+---
+
+# 14. Suggested Data Relationships
+
+The system should support relationships such as:
+
+**Contact**
+→ Contact Type
+→ City
+→ State
+→ Property/Properties
+→ Notes
+
+**Staff Member**
+→ Staff Type
+→ Team
+→ Assigned Properties
+→ Access/Permissions
+
+**Policy / Documentation**
+→ Category
+→ Content
+→ Supporting Documents
+→ Published Status
+→ Created By
+→ Updated By
+
+**Announcement**
+→ Created By
+→ Audience Type
+→ Specific Staff / Team / Staff Type
+→ Priority
+→ Publish Date
+→ Expiration Date
+→ Acknowledgment Requirement
+→ Read/View Status
+
+**Property**
+→ City
+→ State
+→ Address
+→ Associated Contacts
+→ Associated Staff
+
+---
+
+# 15. Overall Objective
+
+The goal is to create a centralized Property Management information and communication system where staff can quickly access the information they need while Administrators retain control over the official company documentation and communications.
+
+The system should provide three primary capabilities:
+
+1. **Centralized Contact Database**
+
+   * Contractors, tenants, property managers, vendors, and other property-related contacts organized by city, state, property, and contact type.
+
+2. **Property Management Knowledge Dashboard**
+
+   * Company policies, processing procedures, documentation, and other informational resources maintained by Admin and displayed to staff.
+
+3. **Staff Communication System**
+
+   * Newsletters, announcements, reminders, and targeted Admin messages that can be sent to all staff, individual staff members, teams, or specific staff types.
+
+The system should be scalable and configurable so that the company can continue adding new contacts, properties, policies, procedures, teams, staff types, and communication categories without requiring changes to the underlying application code.

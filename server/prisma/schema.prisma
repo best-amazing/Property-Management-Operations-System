@@ -21,6 +21,7 @@ model User {
   created_at    DateTime   @default(now())
 
   pending_logins PendingLogin[]
+  announcement_receipts AnnouncementReceipt[]
 }
 
 model Department {
@@ -113,4 +114,104 @@ model PendingLogin {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+}
+
+model ContactType {
+  id          String    @id @default(cuid())
+  name        String    @unique // e.g., "Contractor", "Tenant", "Vendor"
+  contacts    Contact[]
+  created_at  DateTime  @default(now())
+}
+
+model Contact {
+  id              String      @id @default(cuid())
+  name            String      // Full Name or Company Name
+  phone           String?
+  email           String?
+  mailing_address String?
+  city            String?
+  state           String?
+  zip             String?
+  notes           String?
+  status          String      @default("active") // active | archived
+  type_id         String
+  contact_type    ContactType @relation(fields: [type_id], references: [id])
+  
+  properties      PropertyContact[]
+  
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  name        String   // Property Name or Address
+  city        String?
+  state       String?
+  
+  contacts    PropertyContact[]
+}
+
+model PropertyContact {
+  contact_id  String
+  property_id String
+  contact     Contact  @relation(fields: [contact_id], references: [id])
+  property    Property @relation(fields: [property_id], references: [id])
+  
+  @@id([contact_id, property_id])
+}
+
+model PolicyCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g., "Maintenance Procedures"
+  order       Int      @default(0)
+  policies    Policy[]
+}
+
+model Policy {
+  id          String         @id @default(cuid())
+  title       String
+  content     String
+  status      String         @default("draft") // draft | published | archived
+  category_id String
+  category    PolicyCategory @relation(fields: [category_id], references: [id])
+  order       Int            @default(0)
+  
+  attachments Json?          // array of URLs/paths
+  
+  created_by  String
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @updatedAt
+}
+
+model Announcement {
+  id              String   @id @default(cuid())
+  title           String
+  content         String
+  priority        String   @default("normal") // normal | important | urgent
+  target_type     String   // all | user | team | staff_type
+  target_id       String?  // ID of the user, team, or staff_type (null if 'all')
+  
+  require_ack     Boolean  @default(false)
+  publish_at      DateTime @default(now())
+  expires_at      DateTime?
+  
+  created_by      String
+  created_at      DateTime @default(now())
+  
+  receipts        AnnouncementReceipt[]
+}
+
+model AnnouncementReceipt {
+  id              String       @id @default(cuid())
+  announcement_id String
+  announcement    Announcement @relation(fields: [announcement_id], references: [id])
+  user_id         String
+  user            User         @relation(fields: [user_id], references: [id])
+  
+  status          String       @default("delivered") // delivered | viewed | acknowledged
+  viewed_at       DateTime?
+  ack_at          DateTime?
+  
+  @@unique([announcement_id, user_id])
 }

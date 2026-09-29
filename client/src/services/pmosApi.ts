@@ -7,6 +7,10 @@ import {
   User, CreateUserRequest, UpdateUserRequest,
   ActivityItem,
   StaffType, CreateStaffTypeRequest, UpdateStaffTypeRequest, Team,
+  Contact, ContactType, CreateContactRequest, UpdateContactRequest,
+  PolicyCategory, Policy, CreatePolicyCategoryRequest, CreatePolicyRequest2, UpdatePolicyRequest2,
+  Announcement, AnnouncementReceipt, CreateAnnouncementRequest,
+  Property,
 } from "../types/pmos";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1";
@@ -111,4 +115,48 @@ export const pmosApi = {
   // ─── Activity & Admin ─────────────────────────────────────────────────────
   getActivity: () => pmosApi.request<ActivityItem[]>("/client/activity"),
   resetTickets: () => pmosApi.request<{ message: string }>("/admin/seed/tickets", { method: "POST" }),
+
+  // ─── Contacts ─────────────────────────────────────────────────────────────
+  getContacts: () => pmosApi.request<Contact[]>("/client/contacts"),
+  getContact: (id: string) => pmosApi.request<Contact>(`/client/contacts/${id}`),
+  getContactTypes: () => pmosApi.request<ContactType[]>("/admin/contacts/types"),
+  createContactType: (data: { name: string }) =>
+    pmosApi.request<ContactType>("/admin/contacts/types", { method: "POST", body: JSON.stringify(data) }),
+  createContact: (data: CreateContactRequest) =>
+    pmosApi.request<Contact>("/admin/contacts", { method: "POST", body: JSON.stringify(data) }),
+  updateContact: (id: string, data: UpdateContactRequest) =>
+    pmosApi.request<Contact>(`/admin/contacts/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  archiveContact: (id: string) =>
+    pmosApi.request<Contact>(`/admin/contacts/${id}`, { method: "PUT", body: JSON.stringify({ status: "archived" }) }),
+
+  // ─── Properties ───────────────────────────────────────────────────────────
+  getProperties: () => pmosApi.request<Property[]>("/admin/contacts/properties"),
+
+  // ─── Policies & Dashboard ─────────────────────────────────────────────────
+  getPolicyCategories: () => pmosApi.request<PolicyCategory[]>("/admin/policies/categories"),
+  createPolicyCategory: (data: CreatePolicyCategoryRequest) =>
+    pmosApi.request<PolicyCategory>("/admin/policies/categories", { method: "POST", body: JSON.stringify(data) }),
+  getPolicies: () => pmosApi.request<Policy[]>("/admin/policies"),
+  getDashboardPolicies: () => pmosApi.request<PolicyCategory[]>("/client/dashboard/policies"),
+  createPolicy: (data: CreatePolicyRequest2) =>
+    pmosApi.request<Policy>("/admin/policies", { method: "POST", body: JSON.stringify(data) }),
+  updatePolicy: (id: string, data: UpdatePolicyRequest2) =>
+    pmosApi.request<Policy>(`/admin/policies/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  archivePolicy: (id: string) =>
+    pmosApi.request<Policy>(`/admin/policies/${id}`, { method: "PUT", body: JSON.stringify({ status: "archived" }) }),
+
+  // ─── Announcements ────────────────────────────────────────────────────────
+  getAdminAnnouncements: () => pmosApi.request<Announcement[]>("/admin/announcements"),
+  createAnnouncement: (data: CreateAnnouncementRequest) =>
+    pmosApi.request<Announcement>("/admin/announcements", { method: "POST", body: JSON.stringify(data) }),
+  updateAnnouncement: (id: string, data: Partial<CreateAnnouncementRequest>) =>
+    pmosApi.request<Announcement>(`/admin/announcements/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  getAnnouncementReceipts: (id: string) =>
+    pmosApi.request<AnnouncementReceipt[]>(`/admin/announcements/${id}/receipts`),
+  getMyAnnouncements: () => pmosApi.request<AnnouncementReceipt[]>("/client/announcements"),
+  markAnnouncementViewed: (id: string) =>
+    pmosApi.request<{ success: boolean }>(`/client/announcements/${id}/view`, { method: "POST" }),
+  acknowledgeAnnouncement: (id: string) =>
+    pmosApi.request<{ success: boolean }>(`/client/announcements/${id}/acknowledge`, { method: "POST" }),
 };
+

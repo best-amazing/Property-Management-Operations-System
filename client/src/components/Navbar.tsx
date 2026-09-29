@@ -37,6 +37,8 @@ export const Navbar: React.FC = () => {
           <h1 className="text-xl font-bold">AB Investment Groups</h1>
           <Link to="/" className="hover:text-gray-300">Board</Link>
           <Link to="/history" className="hover:text-gray-300">History</Link>
+          <Link to="/directory" className="hover:text-gray-300">Directory</Link>
+          <Link to="/dashboard" className="hover:text-gray-300">Knowledge Base</Link>
         </div>
         <div className="flex space-x-4 items-center">
           <button onClick={openActivity} className="hover:text-gray-300">Activity</button>
