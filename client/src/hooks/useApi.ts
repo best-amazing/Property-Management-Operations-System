@@ -86,7 +86,7 @@ export function useRefreshTickets(pipelineId: string | null) {
 }
 
 export function useContacts() {
-  return useQuery({ queryKey: QUERY_KEYS.contacts, queryFn: pmosApi.getContacts });
+  return useQuery({ queryKey: QUERY_KEYS.contacts, queryFn: pmosApi.getAdminContacts });
 }
 
 export function useContactTypes() {

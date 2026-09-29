@@ -118,6 +118,7 @@ export const pmosApi = {
 
   // ─── Contacts ─────────────────────────────────────────────────────────────
   getContacts: () => pmosApi.request<Contact[]>("/client/contacts"),
+  getAdminContacts: () => pmosApi.request<Contact[]>("/admin/contacts"),
   getContact: (id: string) => pmosApi.request<Contact>(`/client/contacts/${id}`),
   getContactTypes: () => pmosApi.request<ContactType[]>("/admin/contacts/types"),
   createContactType: (data: { name: string }) =>
