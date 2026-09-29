@@ -29,6 +29,7 @@ export const AnnouncementsBell: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [urgentPopup, setUrgentPopup] = useState<AnnouncementReceipt | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const dismissedRef = useRef<Set<string>>(new Set());
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -46,12 +47,28 @@ export const AnnouncementsBell: React.FC = () => {
     const urgent = receipts.find(
       (r) =>
         r.announcement?.priority === "urgent" &&
-        r.status === "delivered"
+        r.status === "delivered" &&
+        !dismissedRef.current.has(r.id)
     );
     if (urgent && !urgentPopup) {
       setUrgentPopup(urgent);
     }
   }, [receipts, urgentPopup]);
+
+  // Close the urgent popup on Escape + lock background scroll
+  useEffect(() => {
+    if (!urgentPopup) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeUrgentPopup();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [urgentPopup]);
 
   const unreadCount = receipts.filter((r) => r.status === "delivered").length;
 
@@ -70,11 +87,25 @@ export const AnnouncementsBell: React.FC = () => {
     try {
       await pmosApi.acknowledgeAnnouncement(id);
       toast.success("Announcement acknowledged");
-      if (urgentPopup?.id === id) setUrgentPopup(null);
+      if (urgentPopup?.announcement?.id === id) {
+        dismissedRef.current.add(urgentPopup.id);
+        setUrgentPopup(null);
+      }
       refetch();
     } catch (err: any) {
       toast.error("Failed to acknowledge: " + err.message);
     }
+  };
+
+  // Always-available escape hatch: dismiss the popup and mark it read so the
+  // auto-trigger does not immediately re-open it. Acknowledgement is still
+  // required, and remains pending in the notifications dropdown.
+  const closeUrgentPopup = () => {
+    const popup = urgentPopup;
+    if (!popup) return;
+    dismissedRef.current.add(popup.id);
+    setUrgentPopup(null);
+    if (popup.announcement?.id) handleMarkViewed(popup.announcement.id);
   };
 
   const priorityStyle = (p?: string): React.CSSProperties => {
@@ -204,22 +235,30 @@ export const AnnouncementsBell: React.FC = () => {
       {urgentPopup && urgentPopup.announcement && (
         <>
           {/* Overlay */}
-          <div style={{
-            position: "fixed", inset: 0, zIndex: 100,
-            background: "rgba(27,36,33,0.45)",
-          }} />
+          <div
+            style={{
+              position: "fixed", inset: 0, zIndex: 100,
+              background: "rgba(27,36,33,0.45)",
+            }}
+            onClick={closeUrgentPopup}
+          />
           {/* Modal */}
           <div style={{
             position: "fixed", inset: 0, zIndex: 101,
             display: "flex", alignItems: "center", justifyContent: "center",
             padding: 24,
           }}>
-            <div style={{
-              background: T.surface, borderRadius: 14,
-              boxShadow: T.shadowLg, maxWidth: 440, width: "100%",
-              border: `2px solid ${T.danger}`, overflow: "hidden",
-              fontFamily: T.font,
-            }}>
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Urgent announcement"
+              style={{
+                background: T.surface, borderRadius: 14,
+                boxShadow: T.shadowLg, maxWidth: 440, width: "100%",
+                border: `2px solid ${T.danger}`, overflow: "hidden",
+                fontFamily: T.font,
+              }}
+            >
               {/* Header */}
               <div style={{
                 background: T.dangerSoft, padding: "14px 20px",
@@ -230,11 +269,20 @@ export const AnnouncementsBell: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <span style={{
+                  flex: 1,
                   fontFamily: T.fontDisplay, fontWeight: 700, fontSize: 16,
                   color: T.danger,
                 }}>
                   Urgent Announcement
                 </span>
+                <button
+                  className="pmos-x"
+                  aria-label="Close announcement"
+                  onClick={closeUrgentPopup}
+                  style={{ color: T.danger, fontSize: 22, fontWeight: 700 }}
+                >
+                  &times;
+                </button>
               </div>
               {/* Body */}
               <div style={{ padding: "20px 24px" }}>
@@ -255,9 +303,16 @@ export const AnnouncementsBell: React.FC = () => {
               <div style={{
                 padding: "14px 24px", background: T.bg,
                 borderTop: `1px solid ${T.line}`,
-                display: "flex", justifyContent: "flex-end",
+                display: "flex", justifyContent: "flex-end", gap: 8,
               }}>
-                {urgentPopup.announcement.require_ack ? (
+                <button
+                  className="pmos-btn"
+                  style={{ fontWeight: 700, padding: "8px 20px" }}
+                  onClick={closeUrgentPopup}
+                >
+                  {urgentPopup.announcement.require_ack ? "Close" : "Dismiss"}
+                </button>
+                {urgentPopup.announcement.require_ack && (
                   <button
                     className="pmos-btn"
                     style={{
@@ -267,17 +322,6 @@ export const AnnouncementsBell: React.FC = () => {
                     onClick={() => handleAcknowledge(urgentPopup.announcement!.id)}
                   >
                     I Acknowledge
-                  </button>
-                ) : (
-                  <button
-                    className="pmos-btn"
-                    style={{ fontWeight: 700, padding: "8px 20px" }}
-                    onClick={() => {
-                      handleMarkViewed(urgentPopup.announcement!.id);
-                      setUrgentPopup(null);
-                    }}
-                  >
-                    Dismiss
                   </button>
                 )}
               </div>
