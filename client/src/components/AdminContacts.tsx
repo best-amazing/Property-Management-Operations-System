@@ -69,7 +69,7 @@ export const AdminContacts: React.FC = () => {
     return matchArchived && matchSearch && matchType;
   });
 
-  if (loadingContacts || loadingTypes) return <div className="py-8 text-center text-gray-400">Loading…</div>;
+  return <div className="pmos-empty" style={{ padding: "28px 0" }}>Loading…</div>;
 
   return (
     <div>

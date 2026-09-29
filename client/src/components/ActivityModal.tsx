@@ -10,44 +10,49 @@ interface Props {
 }
 
 export const ActivityModal: React.FC<Props> = ({ items, setItems, isOpen, onClose, loading }) => {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg p-6 w-1/2 max-h-[80vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Activity Feed</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-black">Close</button>
-        </div>
-        <div className="space-y-4">
-          {loading ? (
-            <p className="text-gray-500">Loading activity…</p>
-          ) : items.length === 0 ? (
-            <p className="text-gray-500">No activity yet.</p>
-          ) : items.map((item, i) => {
-            const isTransition = item.type === "stage_transition";
-            return (
-              <div key={isTransition ? `t-${(item as any).ticket_id}-${i}` : (item as any).id} className="border-b pb-2">
-                <p className="font-semibold">{item.author}</p>
-                <p className="text-gray-600">
-                  {isTransition
-                    ? <>moved <em>{(item as any).ticket_title}</em> {(item as any).text}</>
-                    : <>left a note on <em>{(item as any).ticket_title}</em></>
-                  }
-                </p>
-                <div className="text-xs text-gray-400">
-                  <span>{new Date(item.created_at).toLocaleString()}</span>
-                  {(item as any).pipeline_label && <span> &middot; {(item as any).pipeline_label}</span>}
+    <div className={`pmos-modal-bg ${isOpen ? "show" : ""}`} onClick={onClose}>
+      <div className="pmos-modal wide" onClick={(e) => e.stopPropagation()}>
+        <h3>Activity feed</h3>
+
+        {loading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div className="pmos-skel" style={{ width: "70%" }} />
+            <div className="pmos-skel" style={{ width: "55%" }} />
+            <div className="pmos-skel" style={{ width: "62%" }} />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="pmos-empty" style={{ padding: "28px 0" }}>No activity yet.</div>
+        ) : (
+          <div className="pmos-notes-list" style={{ marginBottom: 0 }}>
+            {items.map((item, i) => {
+              const isTransition = item.type === "stage_transition";
+              const ticketId = (item as any).ticket_id;
+              return (
+                <div className="pmos-activity-row" key={isTransition ? `t-${ticketId}-${i}` : (item as any).id}>
+                  <div className="txt">
+                    <b>{item.author}</b>{" "}
+                    {isTransition ? (
+                      <>moved <b>{(item as any).ticket_title}</b> {item.text}</>
+                    ) : (
+                      <>left a note on <b>{(item as any).ticket_title}</b></>
+                    )}
+                    <div className="meta">
+                      <span>{new Date(item.created_at).toLocaleString()}</span>
+                      {(item as any).pipeline_label && <span>&middot; {(item as any).pipeline_label}</span>}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-4 flex justify-end gap-2">
+              );
+            })}
+          </div>
+        )}
+
+        <div className="pmos-modal-actions">
           {items.length > 0 && (
-            <button onClick={() => setItems([])} className="px-3 py-1 text-sm border rounded hover:bg-gray-100">Clear</button>
+            <button className="pmos-btn" onClick={() => setItems([])}>Clear</button>
           )}
-          <button onClick={onClose} className="px-3 py-1 text-sm bg-gray-800 text-white rounded hover:bg-gray-700">Close</button>
+          <button className="pmos-btn" onClick={onClose}>Close</button>
         </div>
       </div>
     </div>

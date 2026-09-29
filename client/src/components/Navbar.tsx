@@ -4,6 +4,8 @@ import { pmosApi } from "../services/pmosApi";
 import { ActivityModal } from "./ActivityModal";
 import { ActivityItem } from "../types/pmos";
 import { AnnouncementsBell } from "./AnnouncementsBell";
+import { avatarSwatch, initials } from "../utils/ui";
+import { useMe } from "../hooks/useApi";
 
 export const Navbar: React.FC = () => {
   const [activityOpen, setActivityOpen] = useState(false);
@@ -11,8 +13,9 @@ export const Navbar: React.FC = () => {
   const [activityLoading, setActivityLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const { data: me } = useMe();
 
+  const token = localStorage.getItem("token");
   if (!token || location.pathname === "/login") return null;
 
   const openActivity = async () => {
@@ -31,29 +34,40 @@ export const Navbar: React.FC = () => {
     navigate("/login");
   };
 
+  const sw = me ? avatarSwatch(me.display_name) : null;
+
   return (
     <>
-      <nav className="bg-gray-800 text-white p-4 flex justify-between items-center">
-        <div className="flex space-x-6 items-center">
-          <h1 className="text-xl font-bold">AB Investment Groups</h1>
-          <Link to="/" className="hover:text-gray-300">Board</Link>
-          <Link to="/history" className="hover:text-gray-300">History</Link>
-          <Link to="/directory" className="hover:text-gray-300">Directory</Link>
-          <Link to="/dashboard" className="hover:text-gray-300">Knowledge Base</Link>
+      <div className="pmos-topbar">
+        <div className="pmos-title-row">
+          <div className="pmos-title">AB Investment Groups</div>
+          <div className="pmos-nav-links">
+            <Link to="/" className="pmos-btn sm">Board</Link>
+            <Link to="/history" className="pmos-btn sm">History</Link>
+            <Link to="/directory" className="pmos-btn sm">Directory</Link>
+            <Link to="/dashboard" className="pmos-btn sm">Knowledge Base</Link>
+          </div>
+          <div className="pmos-right-cluster">
+            <div className="pmos-actions">
+              <AnnouncementsBell />
+              <button className="pmos-btn" onClick={openActivity}>Activity</button>
+              {me?.role === "admin" && (
+                <button className="pmos-btn" onClick={() => navigate("/admin")}>Admin settings</button>
+              )}
+            </div>
+            {me && (
+              <div className="pmos-user-pill">
+                <span className="pmos-avatar" style={{ width: 26, height: 26, fontSize: 11, background: sw?.color }}>
+                  {initials(me.display_name)}
+                </span>
+                <span className="name">{me.display_name}</span>
+                <span className={`pmos-role-badge ${me.role}`}>{me.role}</span>
+              </div>
+            )}
+            <button className="pmos-btn sm" onClick={handleLogout}>Log out</button>
+          </div>
         </div>
-        <div className="flex space-x-4 items-center">
-          <AnnouncementsBell />
-          <button onClick={openActivity} className="hover:text-gray-300">Activity</button>
-          {(() => {
-            try {
-              const role = JSON.parse(atob(token.split(".")[1])).role;
-              if (role === "admin") return <Link to="/admin" className="hover:text-gray-300">Admin Settings</Link>;
-            } catch {}
-            return null;
-          })()}
-          <button onClick={handleLogout} className="hover:text-gray-300">Logout</button>
-        </div>
-      </nav>
+      </div>
       <ActivityModal items={activityItems} setItems={setActivityItems} isOpen={activityOpen} loading={activityLoading} onClose={() => setActivityOpen(false)} />
     </>
   );

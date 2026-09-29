@@ -73,7 +73,7 @@ export const AdminPolicies: React.FC = () => {
     return { background: "#F8E9D3", color: "#D98E3B" };
   };
 
-  if (loadingPolicies || loadingCategories) return <div className="py-8 text-center text-gray-400">Loading…</div>;
+  return <div className="pmos-empty" style={{ padding: "28px 0" }}>Loading…</div>;
 
   return (
     <div>

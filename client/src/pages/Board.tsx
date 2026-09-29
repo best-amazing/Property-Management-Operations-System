@@ -809,7 +809,7 @@ export const Board: React.FC = () => {
       <div className="pmos-topbar">
         <div className="pmos-title-row">
           <div className="pmos-title">AB Investment Groups</div>
-          <div className="pmos-nav-links" style={{ display: 'flex', gap: 16, alignItems: 'center', marginLeft: 24 }}>
+          <div className="pmos-nav-links">
             <Link to="/history" className="pmos-btn sm">History</Link>
             <Link to="/directory" className="pmos-btn sm">Directory</Link>
             <Link to="/dashboard" className="pmos-btn sm">Knowledge Base</Link>

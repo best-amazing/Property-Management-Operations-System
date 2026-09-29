@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { pmosApi } from "../services/pmosApi";
 import { Pipeline, Ticket } from "../types/pmos";
+import { Navbar } from "../components/Navbar";
+import { fmtDate } from "../utils/ui";
 
 export const History: React.FC = () => {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
@@ -22,39 +24,61 @@ export const History: React.FC = () => {
     }
   }, [activePipelineId]);
 
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Ticket History</h1>
-        <select className="border p-2 rounded" value={activePipelineId} onChange={e => setActivePipelineId(e.target.value)}>
-          {pipelines.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
-      </div>
+  const activePipeline = pipelines.find(p => p.id === activePipelineId);
 
-      {tickets.length === 0 ? (
-        <p className="text-gray-500">No completed tickets yet.</p>
-      ) : (
-        <table className="w-full bg-white rounded shadow">
-          <thead>
-            <tr className="border-b bg-gray-50">
-              <th className="p-3 text-left">Title</th>
-              <th className="p-3 text-left">Property</th>
-              <th className="p-3 text-left">Assigned To</th>
-              <th className="p-3 text-left">Completed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tickets.map(t => (
-              <tr key={t.id} className="border-b">
-                <td className="p-3">{t.title}</td>
-                <td className="p-3">{t.property} {t.unit}</td>
-                <td className="p-3">{t.assigned_to || "-"}</td>
-                <td className="p-3">{t.completed_at ? new Date(t.completed_at).toLocaleDateString() : "-"}</td>
+  return (
+    <div className="pmos-page">
+      <Navbar />
+      <div className="pmos-page-body">
+        <div className="pmos-page-head">
+          <div>
+            <div className="pmos-page-title">Ticket history</div>
+            <div className="pmos-page-sub">
+              {tickets.length} completed {tickets.length === 1 ? "ticket" : "tickets"}
+              {activePipeline ? ` in ${activePipeline.label}` : ""}
+            </div>
+          </div>
+          <div className="pmos-field" style={{ marginBottom: 0, minWidth: 200 }}>
+            <label htmlFor="history-pipeline">Pipeline</label>
+            <select id="history-pipeline" value={activePipelineId} onChange={e => setActivePipelineId(e.target.value)}>
+              {pipelines.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="pmos-history-wrap">
+          <table className="pmos-history-table">
+            <thead>
+              <tr>
+                <th>Ticket</th>
+                <th>Property</th>
+                <th>Tag</th>
+                <th>Assigned</th>
+                <th>Completed</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {tickets.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: "center", color: "var(--ink-soft)", fontStyle: "italic" }}>
+                    No completed tickets yet.
+                  </td>
+                </tr>
+              ) : (
+                tickets.map(t => (
+                  <tr key={t.id}>
+                    <td>{t.title}</td>
+                    <td>{[t.property, t.unit].filter(Boolean).join(" · ")}</td>
+                    <td>{t.tag ?? "—"}</td>
+                    <td>{t.assigned_to ?? "—"}</td>
+                    <td>{t.completed_at ? fmtDate(t.completed_at) : "—"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

@@ -189,6 +189,71 @@ table.pmos-history-table th { text-align: left; color: var(--ink-soft); font-wei
 table.pmos-history-table td { padding: 9px 12px; border-bottom: 1px dashed var(--line); }
 table.pmos-history-table tr:last-child td { border-bottom: none; }
 
+/* ── Shared page shell (History / Directory / Knowledge Base) ── */
+.pmos-page { flex: 1; display: flex; flex-direction: column; min-height: 100vh; background: var(--bg); }
+.pmos-page-body { flex: 1; padding: 18px 22px 26px; }
+.pmos-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.pmos-page-title { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: 0.2px; }
+.pmos-page-sub { font-size: 11.5px; color: var(--ink-soft); margin-top: 3px; }
+
+/* ── Nav links shared by the page top bar ── */
+.pmos-nav-links { display: flex; gap: 8px; align-items: center; margin-left: 24px; flex-wrap: wrap; }
+.pmos-nav-links a { text-decoration: none; }
+
+/* ── Filter bar ── */
+.pmos-filter-bar {
+  display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+.pmos-filter-bar .pmos-field { margin-bottom: 0; }
+.pmos-filter-bar .grow { flex: 1; min-width: 200px; }
+.pmos-filter-bar .narrow { flex: 0 0 auto; min-width: 130px; }
+.pmos-filter-clear { border: none; background: none; cursor: pointer; font-size: 11.5px; font-weight: 600; color: var(--primary); padding: 7px 4px; }
+.pmos-filter-clear:hover { text-decoration: underline; }
+
+/* ── Data table (Directory) ── */
+table.pmos-table { width: 100%; border-collapse: collapse; font-size: 12.5px; background: var(--surface); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); }
+table.pmos-table th { text-align: left; color: var(--ink-soft); font-weight: 600; padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; }
+table.pmos-table td { padding: 9px 12px; border-bottom: 1px dashed var(--line); }
+table.pmos-table tr:last-child td { border-bottom: none; }
+table.pmos-table tbody tr { cursor: pointer; transition: background .12s ease; }
+table.pmos-table tbody tr:hover { background: var(--primary-soft); }
+.pmos-chip { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); }
+
+/* ── Read-only detail rows (drawer / doc body) ── */
+.pmos-detail { display: flex; flex-direction: column; gap: 0; }
+.pmos-detail-row { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; }
+.pmos-detail-row:last-child { border-bottom: none; }
+.pmos-detail-row .k { flex: 0 0 108px; color: var(--ink-soft); font-weight: 600; }
+.pmos-detail-row .v { flex: 1; color: var(--ink); white-space: pre-wrap; }
+
+/* ── Knowledge base ── */
+.pmos-kb-layout { flex: 1; display: flex; align-items: stretch; min-height: 0; }
+.pmos-kb-side { flex: 0 0 252px; background: var(--surface); border-right: 1px solid var(--line); overflow-y: auto; padding: 16px; }
+.pmos-kb-side-title { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+.pmos-kb-group { margin-bottom: 14px; }
+.pmos-kb-group .lbl { font-size: 9.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 5px; }
+.pmos-kb-item {
+  display: block; width: 100%; text-align: left;
+  border: none; background: none; cursor: pointer;
+  font-size: 12.5px; color: var(--ink); padding: 6px 9px;
+  border-radius: 7px; border-left: 2px solid transparent;
+}
+.pmos-kb-item:hover { background: var(--bg); }
+.pmos-kb-item.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; border-left-color: var(--primary); }
+.pmos-kb-main { flex: 1; overflow-y: auto; padding: 18px 22px; }
+.pmos-doc { max-width: 780px; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 22px 26px; }
+.pmos-doc h1 { font-family: 'Space Grotesk', sans-serif; font-size: 21px; font-weight: 700; margin: 0 0 10px; }
+.pmos-doc .meta { display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: var(--ink-soft); border-bottom: 1px solid var(--line); padding-bottom: 11px; margin-bottom: 16px; flex-wrap: wrap; }
+.pmos-doc .body { font-size: 13.5px; line-height: 1.6; color: var(--ink); white-space: pre-wrap; }
+.pmos-empty { padding: 40px; color: var(--ink-soft); font-size: 13px; text-align: center; width: 100%; }
+
+/* ── Loading skeleton ── */
+.pmos-skel { background: var(--line); border-radius: 5px; height: 11px; animation: pmos-pulse 1.3s ease-in-out infinite; }
+@keyframes pmos-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+
 /* ── Overlay + Drawer + Modal ── */
 .pmos-overlay { position: fixed; inset: 0; background: rgba(27,36,33,0.35); opacity: 0; visibility: hidden; transition: opacity .15s ease; z-index: 30; }
 .pmos-overlay.show { opacity: 1; visibility: visible; }
@@ -310,4 +375,22 @@ table.pmos-history-table tr:last-child td { border-bottom: none; }
 
   /* Drawer */
   .pmos-drawer { width: 100%; }
+
+  /* Page shell */
+  .pmos-page-body { padding: 12px 14px 18px; }
+  .pmos-page-head { align-items: flex-start; }
+
+  /* Nav links */
+  .pmos-nav-links { margin-left: 0; width: 100%; }
+
+  /* Filter bar */
+  .pmos-filter-bar { padding: 10px 12px; gap: 10px; }
+  .pmos-filter-bar .grow, .pmos-filter-bar .narrow { min-width: 0; flex: 1 1 100%; }
+
+  /* Knowledge base — sidebar collapses above the doc */
+  .pmos-kb-layout { flex-direction: column; }
+  .pmos-kb-side { flex: none; width: 100%; max-height: 38vh; border-right: none; border-bottom: 1px solid var(--line); }
+  .pmos-kb-main { padding: 12px 14px; }
+  .pmos-doc { padding: 16px 14px; }
+  .pmos-doc h1 { font-size: 18px; }
 }

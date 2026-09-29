@@ -63,7 +63,7 @@ export const AdminAnnouncements: React.FC<{ users: User[]; teams: Team[]; staffT
     return a.target_type;
   };
 
-  if (loading) return <div className="py-8 text-center text-gray-400">Loading…</div>;
+  return <div className="pmos-empty" style={{ padding: "28px 0" }}>Loading…</div>;
 
   return (
     <div>
