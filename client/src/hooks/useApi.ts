@@ -15,6 +15,7 @@ export const QUERY_KEYS = {
   adminPolicies: ["adminPolicies"] as const,
   policyCategories: ["policyCategories"] as const,
   adminAnnouncements: ["adminAnnouncements"] as const,
+  myAnnouncements: ["myAnnouncements"] as const,
 };
 
 export function usePipelines() {
@@ -103,4 +104,12 @@ export function usePolicyCategories() {
 
 export function useAdminAnnouncements() {
   return useQuery({ queryKey: QUERY_KEYS.adminAnnouncements, queryFn: pmosApi.getAdminAnnouncements });
+}
+
+export function useMyAnnouncements() {
+  return useQuery({
+    queryKey: QUERY_KEYS.myAnnouncements,
+    queryFn: pmosApi.getMyAnnouncements,
+    refetchInterval: 60 * 1000, // Refresh every minute
+  });
 }

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { pmosApi } from "../services/pmosApi";
 import { ActivityModal } from "./ActivityModal";
 import { ActivityItem } from "../types/pmos";
+import { AnnouncementsBell } from "./AnnouncementsBell";
 
 export const Navbar: React.FC = () => {
   const [activityOpen, setActivityOpen] = useState(false);
@@ -41,6 +42,7 @@ export const Navbar: React.FC = () => {
           <Link to="/dashboard" className="hover:text-gray-300">Knowledge Base</Link>
         </div>
         <div className="flex space-x-4 items-center">
+          <AnnouncementsBell />
           <button onClick={openActivity} className="hover:text-gray-300">Activity</button>
           {(() => {
             try {
