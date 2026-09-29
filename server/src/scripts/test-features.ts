@@ -49,7 +49,7 @@ async function runTests() {
     let user = await prisma.user.findFirst();
     if (!user) {
         user = await prisma.user.create({
-            data: { username: "testuser", password: "pwd", display_name: "Test User", role: "staff" }
+            data: { username: "testuser", password_hash: "pwd", display_name: "Test User", role: "staff" }
         });
     }
 
