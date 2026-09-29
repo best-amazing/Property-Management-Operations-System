@@ -9,6 +9,7 @@ export const AdminPolicies: React.FC = () => {
   const { data: categories = [], isLoading: loadingCategories, refetch: refetchCategories } = usePolicyCategories();
   const [showForm, setShowForm] = useState(false);
   const [newCatName, setNewCatName] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
 
   // Form state
   const [form, setForm] = useState<CreatePolicyRequest2>({ title: "", content: "", category_id: "" });
@@ -58,6 +59,14 @@ export const AdminPolicies: React.FC = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const handleRestore = async (id: string) => {
+    try {
+      await pmosApi.updatePolicy(id, { status: "draft" });
+      toast.success("Policy restored as draft");
+      fetchData();
+    } catch (e: any) { toast.error(e.message); }
+  };
+
   const statusColor = (s: string) => {
     if (s === "published") return { background: "#E4ECE9", color: "#1F4B43" };
     if (s === "archived") return { background: "#F6DEDA", color: "#B23A2E" };
@@ -68,21 +77,42 @@ export const AdminPolicies: React.FC = () => {
 
   return (
     <div>
+      {/* Toolbar */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center", justifyContent: "flex-end" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--ink-soft)", cursor: "pointer" }}>
+          <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} style={{ width: 14, height: 14, margin: 0 }} />
+          Show archived
+        </label>
+      </div>
+
       {/* Policy List */}
       <div style={{ marginBottom: 24 }}>
-        {policies.filter(p => p.status !== "archived").map(p => (
-          <div key={p.id} className="pmos-admin-row">
-            <div className="grow">
-              <div className="lbl">{p.title}</div>
-              <div className="sub">{p.category?.name || "Uncategorized"} · Updated {new Date(p.updated_at).toLocaleDateString()}</div>
-            </div>
-            <span style={{ ...statusColor(p.status), padding: "3px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>{p.status}</span>
-            <button className="pmos-btn sm" onClick={() => toggleStatus(p)}>{p.status === "published" ? "Unpublish" : "Publish"}</button>
-            <button className="pmos-btn sm ghost-danger" onClick={() => handleArchive(p.id)}>Archive</button>
+        {policies
+          .filter(p => showArchived ? p.status === "archived" : p.status !== "archived")
+          .map(p => {
+            const isArchived = p.status === "archived";
+            return (
+              <div key={p.id} className="pmos-admin-row" style={isArchived ? { opacity: 0.5 } : {}}>
+                <div className="grow">
+                  <div className="lbl">{p.title}</div>
+                  <div className="sub">{p.category?.name || "Uncategorized"} · Updated {new Date(p.updated_at).toLocaleDateString()}</div>
+                </div>
+                <span style={{ ...statusColor(p.status), padding: "3px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>{p.status}</span>
+                {isArchived
+                  ? <button className="pmos-btn sm" onClick={() => handleRestore(p.id)}>Restore</button>
+                  : <>
+                      <button className="pmos-btn sm" onClick={() => toggleStatus(p)}>{p.status === "published" ? "Unpublish" : "Publish"}</button>
+                      <button className="pmos-btn sm ghost-danger" onClick={() => handleArchive(p.id)}>Archive</button>
+                    </>
+                }
+              </div>
+            );
+          })
+        }
+        {policies.filter(p => showArchived ? p.status === "archived" : p.status !== "archived").length === 0 && (
+          <div style={{ textAlign: "center", padding: 30, color: "var(--ink-soft)" }}>
+            {showArchived ? "No archived policies." : "No policies created yet."}
           </div>
-        ))}
-        {policies.filter(p => p.status !== "archived").length === 0 && (
-          <div style={{ textAlign: "center", padding: 30, color: "var(--ink-soft)" }}>No policies created yet.</div>
         )}
       </div>
 
