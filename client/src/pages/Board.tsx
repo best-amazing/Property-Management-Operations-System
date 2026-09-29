@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { AnnouncementsBell } from "../components/AnnouncementsBell";
 import { useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { pmosApi } from "../services/pmosApi";
@@ -808,8 +809,14 @@ export const Board: React.FC = () => {
       <div className="pmos-topbar">
         <div className="pmos-title-row">
           <div className="pmos-title">AB Investment Groups</div>
+          <div className="pmos-nav-links" style={{ display: 'flex', gap: 16, alignItems: 'center', marginLeft: 24 }}>
+            <Link to="/history" className="pmos-btn sm">History</Link>
+            <Link to="/directory" className="pmos-btn sm">Directory</Link>
+            <Link to="/dashboard" className="pmos-btn sm">Knowledge Base</Link>
+          </div>
           <div className="pmos-right-cluster">
             <div className="pmos-actions">
+              <AnnouncementsBell />
               <button className="pmos-btn" onClick={() => setShowActivity(true)}>Activity</button>
               {me.role === "admin" && (
                 <button className="pmos-btn" onClick={() => navigate("/admin")}>Admin settings</button>
