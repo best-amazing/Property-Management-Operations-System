@@ -37,4 +37,30 @@ router.get("/types", async (req, res) => {
   }
 });
 
+// POST /admin/contacts/types
+router.post("/types", async (req, res) => {
+  try {
+    const { name } = req.body;
+    const type = await prisma.contactType.create({ data: { name } });
+    res.status(201).json(type);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create contact type" });
+  }
+});
+
+// PUT /admin/contacts/:id
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    const contact = await prisma.contact.update({
+      where: { id },
+      data
+    });
+    res.json(contact);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update contact" });
+  }
+});
+
 export default router;
