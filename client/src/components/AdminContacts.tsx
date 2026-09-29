@@ -11,6 +11,7 @@ export const AdminContacts: React.FC = () => {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
   const [newTypeName, setNewTypeName] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
 
   // Form state
   const [form, setForm] = useState<CreateContactRequest>({
@@ -53,10 +54,19 @@ export const AdminContacts: React.FC = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const handleRestore = async (id: string) => {
+    try {
+      await pmosApi.updateContact(id, { status: "active" });
+      toast.success("Contact restored");
+      fetchData();
+    } catch (e: any) { toast.error(e.message); }
+  };
+
   const filtered = contacts.filter(c => {
+    const matchArchived = showArchived ? c.status === "archived" : c.status !== "archived";
     const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase());
     const matchType = !filterType || c.type_id === filterType;
-    return matchSearch && matchType;
+    return matchArchived && matchSearch && matchType;
   });
 
   if (loadingContacts || loadingTypes) return <div className="py-8 text-center text-gray-400">Loading…</div>;
@@ -70,20 +80,37 @@ export const AdminContacts: React.FC = () => {
           <option value="">All Types</option>
           {contactTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--ink-soft)", cursor: "pointer", whiteSpace: "nowrap" }}>
+          <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} style={{ width: 14, height: 14, margin: 0 }} />
+          Show archived
+        </label>
       </div>
 
       {/* Contact List */}
       <div style={{ marginBottom: 24 }}>
-        {filtered.map(c => (
-          <div key={c.id} className="pmos-admin-row">
-            <div className="grow">
-              <div className="lbl">{c.name}</div>
-              <div className="sub">{c.contact_type?.name} · {[c.city, c.state].filter(Boolean).join(", ")} {c.phone ? `· ${c.phone}` : ""}</div>
+        {filtered.map(c => {
+          const isArchived = c.status === "archived";
+          return (
+            <div key={c.id} className="pmos-admin-row" style={isArchived ? { opacity: 0.5 } : {}}>
+              <div className="grow">
+                <div className="lbl" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  {c.name}
+                  {isArchived && <span style={{ fontSize: 10, fontWeight: 600, background: "var(--line)", color: "var(--ink-soft)", padding: "2px 6px", borderRadius: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>archived</span>}
+                </div>
+                <div className="sub">{c.contact_type?.name} · {[c.city, c.state].filter(Boolean).join(", ")} {c.phone ? `· ${c.phone}` : ""}</div>
+              </div>
+              {isArchived
+                ? <button className="pmos-btn sm" onClick={() => handleRestore(c.id)}>Restore</button>
+                : <button className="pmos-btn sm ghost-danger" onClick={() => handleArchive(c.id)}>Archive</button>
+              }
             </div>
-            <button className="pmos-btn sm ghost-danger" onClick={() => handleArchive(c.id)}>Archive</button>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div style={{ textAlign: "center", padding: 30, color: "var(--ink-soft)" }}>
+            {showArchived ? "No archived contacts." : "No contacts found."}
           </div>
-        ))}
-        {filtered.length === 0 && <div style={{ textAlign: "center", padding: 30, color: "var(--ink-soft)" }}>No contacts found.</div>}
+        )}
       </div>
 
       <hr className="pmos-divider" />
