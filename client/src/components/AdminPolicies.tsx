@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { pmosApi } from "../services/pmosApi";
-import { Policy, PolicyCategory, CreatePolicyRequest2 } from "../types/pmos";
+import { Policy, CreatePolicyRequest2 } from "../types/pmos";
+import { useAdminPolicies, usePolicyCategories } from "../hooks/useApi";
 
 export const AdminPolicies: React.FC = () => {
-  const [policies, setPolicies] = useState<Policy[]>([]);
-  const [categories, setCategories] = useState<PolicyCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: policies = [], isLoading: loadingPolicies, refetch: refetchPolicies } = useAdminPolicies();
+  const { data: categories = [], isLoading: loadingCategories, refetch: refetchCategories } = usePolicyCategories();
   const [showForm, setShowForm] = useState(false);
   const [newCatName, setNewCatName] = useState("");
 
@@ -14,13 +14,9 @@ export const AdminPolicies: React.FC = () => {
   const [form, setForm] = useState<CreatePolicyRequest2>({ title: "", content: "", category_id: "" });
 
   const fetchData = async () => {
-    try {
-      const [p, c] = await Promise.all([pmosApi.getPolicies(), pmosApi.getPolicyCategories()]);
-      setPolicies(p);
-      setCategories(c);
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+    refetchPolicies();
+    refetchCategories();
   };
-  useEffect(() => { fetchData(); }, []);
 
   const handleCreateCategory = async () => {
     if (!newCatName.trim()) return;
@@ -68,7 +64,7 @@ export const AdminPolicies: React.FC = () => {
     return { background: "#F8E9D3", color: "#D98E3B" };
   };
 
-  if (loading) return <div className="py-8 text-center text-gray-400">Loading…</div>;
+  if (loadingPolicies || loadingCategories) return <div className="py-8 text-center text-gray-400">Loading…</div>;
 
   return (
     <div>
@@ -93,21 +89,29 @@ export const AdminPolicies: React.FC = () => {
         </button>
       </div>
 
-      {/* Create Policy Form */}
+      {/* Create Policy Form Modal */}
       {showForm && (
-        <form onSubmit={handleCreatePolicy} className="pmos-admin-card" style={{ marginBottom: 16 }}>
-          <div className="pmos-row2">
-            <div className="pmos-field"><label>Title</label><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required /></div>
-            <div className="pmos-field"><label>Category</label>
-              <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} required>
-                <option value="">Select…</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
+        <div className="pmos-modal-bg show" onClick={() => setShowForm(false)} style={{ position: "fixed", inset: 0, zIndex: 100 }}>
+          <div className="pmos-modal wide" onClick={e => e.stopPropagation()}>
+            <h3>Create Policy</h3>
+            <form onSubmit={handleCreatePolicy} style={{ marginTop: 16 }}>
+              <div className="pmos-row2">
+                <div className="pmos-field"><label>Title</label><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required /></div>
+                <div className="pmos-field"><label>Category</label>
+                  <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} required>
+                    <option value="">Select…</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="pmos-field"><label>Content</label><textarea rows={8} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} style={{ fontFamily: "inherit", width: "100%" }} /></div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
+                <button type="button" className="pmos-btn" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="pmos-btn primary">Create (as Draft)</button>
+              </div>
+            </form>
           </div>
-          <div className="pmos-field"><label>Content</label><textarea rows={8} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} style={{ fontFamily: "inherit", width: "100%" }} /></div>
-          <button type="submit" className="pmos-btn primary" style={{ marginTop: 8 }}>Create (as Draft)</button>
-        </form>
+        </div>
       )}
 
       {/* Policy List */}

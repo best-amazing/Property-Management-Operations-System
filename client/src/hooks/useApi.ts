@@ -10,6 +10,11 @@ export const QUERY_KEYS = {
   staffTypes: ["staffTypes"] as const,
   teams: ["teams"] as const,
   departments: ["departments"] as const,
+  contacts: ["contacts"] as const,
+  contactTypes: ["contactTypes"] as const,
+  adminPolicies: ["adminPolicies"] as const,
+  policyCategories: ["policyCategories"] as const,
+  adminAnnouncements: ["adminAnnouncements"] as const,
 };
 
 export function usePipelines() {
@@ -78,4 +83,24 @@ export function useRefreshTickets(pipelineId: string | null) {
   return () => {
     if (pipelineId) qc.invalidateQueries({ queryKey: ["tickets", pipelineId] });
   };
+}
+
+export function useContacts() {
+  return useQuery({ queryKey: QUERY_KEYS.contacts, queryFn: pmosApi.getContacts });
+}
+
+export function useContactTypes() {
+  return useQuery({ queryKey: QUERY_KEYS.contactTypes, queryFn: pmosApi.getContactTypes });
+}
+
+export function useAdminPolicies() {
+  return useQuery({ queryKey: QUERY_KEYS.adminPolicies, queryFn: pmosApi.getPolicies });
+}
+
+export function usePolicyCategories() {
+  return useQuery({ queryKey: QUERY_KEYS.policyCategories, queryFn: pmosApi.getPolicyCategories });
+}
+
+export function useAdminAnnouncements() {
+  return useQuery({ queryKey: QUERY_KEYS.adminAnnouncements, queryFn: pmosApi.getAdminAnnouncements });
 }

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { pmosApi } from "../services/pmosApi";
 import { Announcement, CreateAnnouncementRequest, User, Team, StaffType } from "../types/pmos";
+import { useAdminAnnouncements } from "../hooks/useApi";
 
 export const AdminAnnouncements: React.FC<{ users: User[]; teams: Team[]; staffTypes: StaffType[] }> = ({ users, teams, staffTypes }) => {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: announcements = [], isLoading: loading, refetch: refetchAnnouncements } = useAdminAnnouncements();
   const [showForm, setShowForm] = useState(false);
 
   // Form state
@@ -17,12 +17,8 @@ export const AdminAnnouncements: React.FC<{ users: User[]; teams: Team[]; staffT
   const [expiresDate, setExpiresDate] = useState("");
 
   const fetchData = async () => {
-    try {
-      const data = await pmosApi.getAdminAnnouncements();
-      setAnnouncements(data);
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+    refetchAnnouncements();
   };
-  useEffect(() => { fetchData(); }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,79 +74,87 @@ export const AdminAnnouncements: React.FC<{ users: User[]; teams: Team[]; staffT
         </button>
       </div>
 
-      {/* Create Announcement Form */}
+      {/* Create Announcement Form Modal */}
       {showForm && (
-        <form onSubmit={handleCreate} className="pmos-admin-card" style={{ marginBottom: 16 }}>
-          <div className="pmos-row2">
-            <div className="pmos-field"><label>Title</label><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required /></div>
-            <div className="pmos-field"><label>Priority</label>
-              <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value as any })}>
-                <option value="normal">Normal</option>
-                <option value="important">Important</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-          </div>
-          <div className="pmos-field"><label>Content</label><textarea rows={4} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} style={{ fontFamily: "inherit", width: "100%" }} /></div>
-
-          {/* Targeting */}
-          <div className="pmos-row2">
-            <div className="pmos-field"><label>Target Audience</label>
-              <select value={form.target_type} onChange={e => setForm({ ...form, target_type: e.target.value as any, target_id: undefined })}>
-                <option value="all">All Staff</option>
-                <option value="user">Specific User</option>
-                <option value="team">Specific Team</option>
-                <option value="staff_type">Specific Staff Type</option>
-              </select>
-            </div>
-            {form.target_type === "user" && (
-              <div className="pmos-field"><label>Select User</label>
-                <select value={form.target_id || ""} onChange={e => setForm({ ...form, target_id: e.target.value })}>
-                  <option value="">Select…</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.display_name}</option>)}
-                </select>
+        <div className="pmos-modal-bg show" onClick={() => setShowForm(false)} style={{ position: "fixed", inset: 0, zIndex: 100 }}>
+          <div className="pmos-modal wide" onClick={e => e.stopPropagation()}>
+            <h3>Create Announcement</h3>
+            <form onSubmit={handleCreate} style={{ marginTop: 16 }}>
+              <div className="pmos-row2">
+                <div className="pmos-field"><label>Title</label><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required /></div>
+                <div className="pmos-field"><label>Priority</label>
+                  <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value as any })}>
+                    <option value="normal">Normal</option>
+                    <option value="important">Important</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
               </div>
-            )}
-            {form.target_type === "team" && (
-              <div className="pmos-field"><label>Select Team</label>
-                <select value={form.target_id || ""} onChange={e => setForm({ ...form, target_id: e.target.value })}>
-                  <option value="">Select…</option>
-                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
-            )}
-            {form.target_type === "staff_type" && (
-              <div className="pmos-field"><label>Select Staff Type</label>
-                <select value={form.target_id || ""} onChange={e => setForm({ ...form, target_id: e.target.value })}>
-                  <option value="">Select…</option>
-                  {staffTypes.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
-                </select>
-              </div>
-            )}
-          </div>
+              <div className="pmos-field"><label>Content</label><textarea rows={4} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} style={{ fontFamily: "inherit", width: "100%" }} /></div>
 
-          {/* Scheduling and Options */}
-          <div className="pmos-row2">
-            <div className="pmos-field" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input type="checkbox" checked={form.require_ack} onChange={e => setForm({ ...form, require_ack: e.target.checked })} />
-              <label style={{ margin: 0 }}>Require acknowledgment</label>
-            </div>
-            <div className="pmos-field" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input type="checkbox" checked={publishLater} onChange={e => setPublishLater(e.target.checked)} />
-              <label style={{ margin: 0 }}>Schedule for later</label>
-            </div>
-          </div>
-          {publishLater && (
-            <div className="pmos-row2">
-              <div className="pmos-field"><label>Publish Date/Time</label><input type="datetime-local" value={publishDate} onChange={e => setPublishDate(e.target.value)} /></div>
-              <div className="pmos-field"><label>Expiration Date (optional)</label><input type="datetime-local" value={expiresDate} onChange={e => setExpiresDate(e.target.value)} /></div>
-            </div>
-          )}
+              {/* Targeting */}
+              <div className="pmos-row2">
+                <div className="pmos-field"><label>Target Audience</label>
+                  <select value={form.target_type} onChange={e => setForm({ ...form, target_type: e.target.value as any, target_id: undefined })}>
+                    <option value="all">All Staff</option>
+                    <option value="user">Specific User</option>
+                    <option value="team">Specific Team</option>
+                    <option value="staff_type">Specific Staff Type</option>
+                  </select>
+                </div>
+                {form.target_type === "user" && (
+                  <div className="pmos-field"><label>Select User</label>
+                    <select value={form.target_id || ""} onChange={e => setForm({ ...form, target_id: e.target.value })}>
+                      <option value="">Select…</option>
+                      {users.map(u => <option key={u.id} value={u.id}>{u.display_name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {form.target_type === "team" && (
+                  <div className="pmos-field"><label>Select Team</label>
+                    <select value={form.target_id || ""} onChange={e => setForm({ ...form, target_id: e.target.value })}>
+                      <option value="">Select…</option>
+                      {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {form.target_type === "staff_type" && (
+                  <div className="pmos-field"><label>Select Staff Type</label>
+                    <select value={form.target_id || ""} onChange={e => setForm({ ...form, target_id: e.target.value })}>
+                      <option value="">Select…</option>
+                      {staffTypes.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
 
-          <button type="submit" className="pmos-btn primary" style={{ marginTop: 8 }}>
-            {publishLater ? "Schedule Announcement" : "Send Announcement"}
-          </button>
-        </form>
+              {/* Scheduling and Options */}
+              <div className="pmos-row2">
+                <div className="pmos-field" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input type="checkbox" checked={form.require_ack} onChange={e => setForm({ ...form, require_ack: e.target.checked })} />
+                  <label style={{ margin: 0 }}>Require acknowledgment</label>
+                </div>
+                <div className="pmos-field" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input type="checkbox" checked={publishLater} onChange={e => setPublishLater(e.target.checked)} />
+                  <label style={{ margin: 0 }}>Schedule for later</label>
+                </div>
+              </div>
+              {publishLater && (
+                <div className="pmos-row2">
+                  <div className="pmos-field"><label>Publish Date/Time</label><input type="datetime-local" value={publishDate} onChange={e => setPublishDate(e.target.value)} /></div>
+                  <div className="pmos-field"><label>Expiration Date (optional)</label><input type="datetime-local" value={expiresDate} onChange={e => setExpiresDate(e.target.value)} /></div>
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
+                <button type="button" className="pmos-btn" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="pmos-btn primary">
+                  {publishLater ? "Schedule Announcement" : "Send Announcement"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Announcements List */}

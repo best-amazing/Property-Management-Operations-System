@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { pmosApi } from "../services/pmosApi";
-import { Contact, ContactType, CreateContactRequest } from "../types/pmos";
+import { CreateContactRequest } from "../types/pmos";
+import { useContacts, useContactTypes } from "../hooks/useApi";
 
 export const AdminContacts: React.FC = () => {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [contactTypes, setContactTypes] = useState<ContactType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: contacts = [], isLoading: loadingContacts, refetch: refetchContacts } = useContacts();
+  const { data: contactTypes = [], isLoading: loadingTypes, refetch: refetchTypes } = useContactTypes();
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
@@ -18,13 +18,9 @@ export const AdminContacts: React.FC = () => {
   });
 
   const fetchData = async () => {
-    try {
-      const [c, t] = await Promise.all([pmosApi.getContacts(), pmosApi.getContactTypes()]);
-      setContacts(c);
-      setContactTypes(t);
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+    refetchContacts();
+    refetchTypes();
   };
-  useEffect(() => { fetchData(); }, []);
 
   const handleCreateType = async () => {
     if (!newTypeName.trim()) return;
@@ -63,7 +59,7 @@ export const AdminContacts: React.FC = () => {
     return matchSearch && matchType;
   });
 
-  if (loading) return <div className="py-8 text-center text-gray-400">Loading…</div>;
+  if (loadingContacts || loadingTypes) return <div className="py-8 text-center text-gray-400">Loading…</div>;
 
   return (
     <div>
@@ -93,33 +89,41 @@ export const AdminContacts: React.FC = () => {
         </button>
       </div>
 
-      {/* Create Contact Form */}
+      {/* Create Contact Form Modal */}
       {showForm && (
-        <form onSubmit={handleCreateContact} className="pmos-admin-card" style={{ marginBottom: 16 }}>
-          <div className="pmos-row2">
-            <div className="pmos-field"><label>Full Name / Company</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
-            <div className="pmos-field"><label>Contact Type</label>
-              <select value={form.type_id} onChange={e => setForm({ ...form, type_id: e.target.value })} required>
-                <option value="">Select…</option>
-                {contactTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </div>
+        <div className="pmos-modal-bg show" onClick={() => setShowForm(false)} style={{ position: "fixed", inset: 0, zIndex: 100 }}>
+          <div className="pmos-modal wide" onClick={e => e.stopPropagation()}>
+            <h3>Add New Contact</h3>
+            <form onSubmit={handleCreateContact} style={{ marginTop: 16 }}>
+              <div className="pmos-row2">
+                <div className="pmos-field"><label>Full Name / Company</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
+                <div className="pmos-field"><label>Contact Type</label>
+                  <select value={form.type_id} onChange={e => setForm({ ...form, type_id: e.target.value })} required>
+                    <option value="">Select…</option>
+                    {contactTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="pmos-row2">
+                <div className="pmos-field"><label>Phone</label><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
+                <div className="pmos-field"><label>Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+              </div>
+              <div className="pmos-row2">
+                <div className="pmos-field"><label>Mailing Address</label><input value={form.mailing_address} onChange={e => setForm({ ...form, mailing_address: e.target.value })} /></div>
+              </div>
+              <div className="pmos-row2">
+                <div className="pmos-field"><label>City</label><input value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} /></div>
+                <div className="pmos-field"><label>State</label><input value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} /></div>
+                <div className="pmos-field"><label>ZIP</label><input value={form.zip} onChange={e => setForm({ ...form, zip: e.target.value })} /></div>
+              </div>
+              <div className="pmos-field"><label>Notes</label><textarea rows={3} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
+                <button type="button" className="pmos-btn" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="pmos-btn primary">Create Contact</button>
+              </div>
+            </form>
           </div>
-          <div className="pmos-row2">
-            <div className="pmos-field"><label>Phone</label><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
-            <div className="pmos-field"><label>Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
-          </div>
-          <div className="pmos-row2">
-            <div className="pmos-field"><label>Mailing Address</label><input value={form.mailing_address} onChange={e => setForm({ ...form, mailing_address: e.target.value })} /></div>
-          </div>
-          <div className="pmos-row2">
-            <div className="pmos-field"><label>City</label><input value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} /></div>
-            <div className="pmos-field"><label>State</label><input value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} /></div>
-            <div className="pmos-field"><label>ZIP</label><input value={form.zip} onChange={e => setForm({ ...form, zip: e.target.value })} /></div>
-          </div>
-          <div className="pmos-field"><label>Notes</label><textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
-          <button type="submit" className="pmos-btn primary" style={{ marginTop: 8 }}>Create Contact</button>
-        </form>
+        </div>
       )}
 
       {/* Contact List */}
