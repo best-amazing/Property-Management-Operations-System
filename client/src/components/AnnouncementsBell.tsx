@@ -4,6 +4,26 @@ import { useMyAnnouncements } from "../hooks/useApi";
 import { pmosApi } from "../services/pmosApi";
 import { AnnouncementReceipt } from "../types/pmos";
 
+/* ── Design tokens (from index.css :root) ── */
+const T = {
+  bg: "#ECEEEA",
+  surface: "#FFFFFF",
+  ink: "#1B2421",
+  inkSoft: "#5B6660",
+  primary: "#1F4B43",
+  primarySoft: "#E4ECE9",
+  accent: "#D98E3B",
+  accentSoft: "#F8E9D3",
+  danger: "#B23A2E",
+  dangerSoft: "#F6DEDA",
+  line: "#D3D6CD",
+  radius: "9px",
+  shadow: "0 2px 6px rgba(27,36,33,0.06)",
+  shadowLg: "0 10px 30px rgba(27,36,33,0.16)",
+  font: "'IBM Plex Sans', sans-serif",
+  fontDisplay: "'Space Grotesk', sans-serif",
+};
+
 export const AnnouncementsBell: React.FC = () => {
   const { data: receipts = [], refetch } = useMyAnnouncements();
   const [open, setOpen] = useState(false);
@@ -26,7 +46,7 @@ export const AnnouncementsBell: React.FC = () => {
     const urgent = receipts.find(
       (r) =>
         r.announcement?.priority === "urgent" &&
-        r.status === "delivered" // hasn't been viewed yet
+        r.status === "delivered"
     );
     if (urgent && !urgentPopup) {
       setUrgentPopup(urgent);
@@ -57,88 +77,124 @@ export const AnnouncementsBell: React.FC = () => {
     }
   };
 
-  const priorityColor = (p?: string) => {
-    if (p === "urgent") return "text-red-600 bg-red-100 border-red-200";
-    if (p === "important") return "text-orange-600 bg-orange-100 border-orange-200";
-    return "text-indigo-600 bg-indigo-50 border-indigo-100";
+  const priorityStyle = (p?: string): React.CSSProperties => {
+    if (p === "urgent") return { background: T.dangerSoft, color: T.danger, border: `1px solid ${T.danger}` };
+    if (p === "important") return { background: T.accentSoft, color: T.accent, border: `1px solid ${T.accent}` };
+    return { background: T.primarySoft, color: T.primary, border: `1px solid ${T.primary}` };
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div style={{ position: "relative" }} ref={ref}>
       {/* Bell Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 text-gray-300 hover:text-white focus:outline-none transition-colors"
+        className="pmos-btn sm"
+        style={{ position: "relative", padding: "5px 10px", display: "flex", alignItems: "center", gap: 4 }}
       >
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+          <span style={{
+            position: "absolute", top: -2, right: -2,
+            width: 16, height: 16, borderRadius: "50%",
+            background: T.danger, color: "#fff",
+            fontSize: 9, fontWeight: 700,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
             {unreadCount}
           </span>
         )}
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-100 z-50 max-h-[80vh] flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-            <h3 className="font-semibold text-gray-800">Notifications</h3>
+        <div style={{
+          position: "absolute", right: 0, top: "calc(100% + 8px)",
+          width: 340, maxHeight: "70vh",
+          background: T.surface, borderRadius: T.radius,
+          border: `1px solid ${T.line}`, boxShadow: T.shadowLg,
+          zIndex: 50, display: "flex", flexDirection: "column",
+          overflow: "hidden", fontFamily: T.font,
+        }}>
+          {/* Header */}
+          <div style={{
+            padding: "12px 16px", borderBottom: `1px solid ${T.line}`,
+            background: T.bg,
+            fontFamily: T.fontDisplay, fontWeight: 700, fontSize: 14, color: T.ink,
+          }}>
+            Notifications
           </div>
-          <div className="overflow-y-auto flex-1">
+          {/* List */}
+          <div style={{ overflowY: "auto", flex: 1 }}>
             {receipts.length === 0 ? (
-              <div className="p-6 text-center text-sm text-gray-500">You have no new notifications.</div>
+              <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 12.5, color: T.inkSoft }}>
+                No notifications yet.
+              </div>
             ) : (
-              <ul className="divide-y divide-gray-100">
-                {receipts.map((receipt) => {
-                  const ann = receipt.announcement;
-                  if (!ann) return null;
-                  const isUnread = receipt.status === "delivered";
-                  const needsAck = ann.require_ack && receipt.status !== "acknowledged";
+              receipts.map((receipt) => {
+                const ann = receipt.announcement;
+                if (!ann) return null;
+                const isUnread = receipt.status === "delivered";
+                const needsAck = ann.require_ack && receipt.status !== "acknowledged";
 
-                  return (
-                    <li
-                      key={receipt.id}
-                      className={`p-4 hover:bg-gray-50 transition-colors ${isUnread ? "bg-indigo-50/30" : ""}`}
-                      onClick={() => {
-                        if (isUnread && !needsAck) handleMarkViewed(ann.id);
-                      }}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${priorityColor(ann.priority)}`}>
-                          {ann.priority}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {new Date(ann.publish_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <h4 className={`text-sm ${isUnread ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
-                        {ann.title}
-                      </h4>
-                      <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">{ann.content}</p>
-                      
-                      <div className="mt-3 flex justify-end gap-2">
+                return (
+                  <div
+                    key={receipt.id}
+                    onClick={() => { if (isUnread && !needsAck) handleMarkViewed(ann.id); }}
+                    style={{
+                      padding: "12px 16px",
+                      borderBottom: `1px dashed ${T.line}`,
+                      background: isUnread ? T.primarySoft : "transparent",
+                      cursor: isUnread ? "pointer" : "default",
+                      transition: "background 0.12s",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <span style={{
+                        fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4,
+                        padding: "2px 7px", borderRadius: 20,
+                        ...priorityStyle(ann.priority),
+                      }}>
+                        {ann.priority}
+                      </span>
+                      <span style={{ fontSize: 10.5, color: T.inkSoft, fontFamily: "'IBM Plex Mono', monospace" }}>
+                        {new Date(ann.publish_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div style={{
+                      fontFamily: T.fontDisplay, fontSize: 13, fontWeight: isUnread ? 700 : 600,
+                      color: T.ink, marginBottom: 3,
+                    }}>
+                      {ann.title}
+                    </div>
+                    <div style={{ fontSize: 12, color: T.inkSoft, lineHeight: 1.4, whiteSpace: "pre-wrap" }}>
+                      {ann.content.length > 100 ? ann.content.slice(0, 100) + "…" : ann.content}
+                    </div>
+                    {(needsAck || isUnread) && (
+                      <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end", gap: 8 }}>
                         {needsAck ? (
                           <button
+                            className="pmos-btn primary"
+                            style={{ fontSize: 11, padding: "5px 12px" }}
                             onClick={(e) => handleAcknowledge(ann.id, e)}
-                            className="text-xs font-semibold bg-indigo-600 text-white px-3 py-1.5 rounded-md hover:bg-indigo-700"
                           >
                             Acknowledge
                           </button>
-                        ) : isUnread ? (
+                        ) : (
                           <button
+                            className="pmos-btn sm"
+                            style={{ fontSize: 11 }}
                             onClick={(e) => handleMarkViewed(ann.id, e)}
-                            className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
                           >
-                            Mark as Read
+                            Mark as read
                           </button>
-                        ) : null}
+                        )}
                       </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
@@ -146,40 +202,88 @@ export const AnnouncementsBell: React.FC = () => {
 
       {/* Urgent Popup Modal */}
       {urgentPopup && urgentPopup.announcement && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border-2 border-red-500 animate-in fade-in zoom-in duration-300">
-            <div className="bg-red-50 p-4 border-b border-red-100 flex items-center gap-3">
-              <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <h2 className="text-lg font-bold text-red-800">Urgent Announcement</h2>
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">{urgentPopup.announcement.title}</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{urgentPopup.announcement.content}</p>
-            </div>
-            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-              {urgentPopup.announcement.require_ack ? (
-                <button
-                  onClick={() => handleAcknowledge(urgentPopup.announcement!.id)}
-                  className="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-                >
-                  I Acknowledge
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    handleMarkViewed(urgentPopup.announcement!.id);
-                    setUrgentPopup(null);
-                  }}
-                  className="bg-gray-800 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-900 transition-colors shadow-sm"
-                >
-                  Dismiss
-                </button>
-              )}
+        <>
+          {/* Overlay */}
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 100,
+            background: "rgba(27,36,33,0.45)",
+          }} />
+          {/* Modal */}
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 101,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24,
+          }}>
+            <div style={{
+              background: T.surface, borderRadius: 14,
+              boxShadow: T.shadowLg, maxWidth: 440, width: "100%",
+              border: `2px solid ${T.danger}`, overflow: "hidden",
+              fontFamily: T.font,
+            }}>
+              {/* Header */}
+              <div style={{
+                background: T.dangerSoft, padding: "14px 20px",
+                borderBottom: `1px solid ${T.danger}`,
+                display: "flex", alignItems: "center", gap: 10,
+              }}>
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke={T.danger} strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span style={{
+                  fontFamily: T.fontDisplay, fontWeight: 700, fontSize: 16,
+                  color: T.danger,
+                }}>
+                  Urgent Announcement
+                </span>
+              </div>
+              {/* Body */}
+              <div style={{ padding: "20px 24px" }}>
+                <h3 style={{
+                  fontFamily: T.fontDisplay, fontSize: 18, fontWeight: 700,
+                  color: T.ink, margin: "0 0 8px",
+                }}>
+                  {urgentPopup.announcement.title}
+                </h3>
+                <p style={{
+                  fontSize: 13.5, color: T.inkSoft, lineHeight: 1.55,
+                  margin: 0, whiteSpace: "pre-wrap",
+                }}>
+                  {urgentPopup.announcement.content}
+                </p>
+              </div>
+              {/* Footer */}
+              <div style={{
+                padding: "14px 24px", background: T.bg,
+                borderTop: `1px solid ${T.line}`,
+                display: "flex", justifyContent: "flex-end",
+              }}>
+                {urgentPopup.announcement.require_ack ? (
+                  <button
+                    className="pmos-btn"
+                    style={{
+                      background: T.danger, color: "#fff", borderColor: T.danger,
+                      fontWeight: 700, padding: "8px 20px",
+                    }}
+                    onClick={() => handleAcknowledge(urgentPopup.announcement!.id)}
+                  >
+                    I Acknowledge
+                  </button>
+                ) : (
+                  <button
+                    className="pmos-btn"
+                    style={{ fontWeight: 700, padding: "8px 20px" }}
+                    onClick={() => {
+                      handleMarkViewed(urgentPopup.announcement!.id);
+                      setUrgentPopup(null);
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
