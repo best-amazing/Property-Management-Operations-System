@@ -8,6 +8,7 @@ import departmentsRouter from "./departments";
 import contactsRouter from "./contacts";
 import policiesRouter from "./policies";
 import announcementsRouter from "./announcements";
+import propertiesRouter from "./properties";
 import { requireAdmin } from "../../utils/authMiddleware";
 
 const router = Router();
@@ -22,6 +23,7 @@ router.use("/departments", departmentsRouter);
 router.use("/contacts", contactsRouter);
 router.use("/policies", policiesRouter);
 router.use("/announcements", announcementsRouter);
+router.use("/properties", propertiesRouter);
 
 export default router;
 

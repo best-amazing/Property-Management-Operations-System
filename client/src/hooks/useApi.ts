@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { pmosApi } from "../services/pmosApi";
+import { ContactFilters } from "../types/pmos";
 
 export const QUERY_KEYS = {
   pipelines: ["pipelines"] as const,
@@ -11,6 +12,8 @@ export const QUERY_KEYS = {
   teams: ["teams"] as const,
   departments: ["departments"] as const,
   contacts: ["contacts"] as const,
+  contactFilterOptions: ["contactFilterOptions"] as const,
+  properties: ["properties"] as const,
   contactTypes: ["contactTypes"] as const,
   adminPolicies: ["adminPolicies"] as const,
   policyCategories: ["policyCategories"] as const,
@@ -86,8 +89,20 @@ export function useRefreshTickets(pipelineId: string | null) {
   };
 }
 
-export function useContacts() {
-  return useQuery({ queryKey: QUERY_KEYS.contacts, queryFn: pmosApi.getAdminContacts });
+export function useContacts(filters: ContactFilters = {}) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.contacts, filters],
+    queryFn: () => pmosApi.getAdminContacts(filters),
+    placeholderData: prev => prev,
+  });
+}
+
+export function useAdminContactFilterOptions() {
+  return useQuery({ queryKey: QUERY_KEYS.contactFilterOptions, queryFn: pmosApi.getAdminContactFilterOptions });
+}
+
+export function useProperties() {
+  return useQuery({ queryKey: QUERY_KEYS.properties, queryFn: pmosApi.getProperties });
 }
 
 export function useContactTypes() {

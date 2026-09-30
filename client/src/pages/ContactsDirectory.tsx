@@ -1,53 +1,50 @@
 import React, { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { pmosApi } from "../services/pmosApi";
-import { Contact } from "../types/pmos";
+import { Contact, ContactFilters } from "../types/pmos";
 import { Navbar } from "../components/Navbar";
 
 export const ContactsDirectory: React.FC = () => {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterCity, setFilterCity] = useState("");
   const [filterState, setFilterState] = useState("");
+  const [filterZip, setFilterZip] = useState("");
   const [filterType, setFilterType] = useState("");
+  const [filterProperty, setFilterProperty] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   useEffect(() => {
-    const fetchContacts = async () => {
-      try {
-        const data = await pmosApi.getContacts();
-        setContacts(data);
-      } catch (e) {
-        console.error("Failed to fetch contacts", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchContacts();
-  }, []);
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  // Derive unique filter options from loaded contacts
-  const cities = [...new Set(contacts.map(c => c.city).filter(Boolean))] as string[];
-  const states = [...new Set(contacts.map(c => c.state).filter(Boolean))] as string[];
-  const types = [...new Set(contacts.map(c => c.contact_type?.name).filter(Boolean))] as string[];
-
-  const filtered = contacts.filter(c => {
-    const matchesSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.email?.toLowerCase().includes(search.toLowerCase()) ||
-      c.phone?.includes(search);
-    const matchesCity = !filterCity || c.city === filterCity;
-    const matchesState = !filterState || c.state === filterState;
-    const matchesType = !filterType || c.contact_type?.name === filterType;
-    return matchesSearch && matchesCity && matchesState && matchesType;
+  // Filtering happens server-side so the directory scales with the database
+  const filters: ContactFilters = {
+    search: debouncedSearch, city: filterCity, state: filterState, zip: filterZip,
+    type_id: filterType, property_id: filterProperty,
+  };
+  const { data: contacts = [], isLoading: loading, isFetching } = useQuery({
+    queryKey: ["directoryContacts", filters],
+    queryFn: () => pmosApi.getContacts(filters),
+    placeholderData: prev => prev,
+  });
+  // Dropdown options come from the data itself, so new cities/states/types appear automatically
+  const { data: options } = useQuery({
+    queryKey: ["directoryFilterOptions"],
+    queryFn: pmosApi.getContactFilterOptions,
+    staleTime: 60 * 1000,
   });
 
-  const hasFilters = !!(search || filterCity || filterState || filterType);
+  const hasFilters = !!(search || filterCity || filterState || filterZip || filterType || filterProperty);
 
   const clearFilters = () => {
     setSearch("");
     setFilterCity("");
     setFilterState("");
+    setFilterZip("");
     setFilterType("");
+    setFilterProperty("");
   };
 
   return (
@@ -58,7 +55,7 @@ export const ContactsDirectory: React.FC = () => {
           <div>
             <div className="pmos-page-title">Contact directory</div>
             <div className="pmos-page-sub">
-              {loading ? "Loading contacts…" : `${filtered.length} of ${contacts.length} contacts`}
+              {loading ? "Loading contacts…" : `${contacts.length} contact${contacts.length === 1 ? "" : "s"}${hasFilters ? " match" : ""}${isFetching ? " · updating…" : ""}`}
             </div>
           </div>
         </div>
@@ -78,21 +75,35 @@ export const ContactsDirectory: React.FC = () => {
             <label htmlFor="dir-city">City</label>
             <select id="dir-city" value={filterCity} onChange={e => setFilterCity(e.target.value)}>
               <option value="">All Cities</option>
-              {cities.map(c => <option key={c} value={c}>{c}</option>)}
+              {options?.cities.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div className="pmos-field narrow">
             <label htmlFor="dir-state">State</label>
             <select id="dir-state" value={filterState} onChange={e => setFilterState(e.target.value)}>
               <option value="">All States</option>
-              {states.map(s => <option key={s} value={s}>{s}</option>)}
+              {options?.states.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="pmos-field narrow">
+            <label htmlFor="dir-zip">ZIP</label>
+            <select id="dir-zip" value={filterZip} onChange={e => setFilterZip(e.target.value)}>
+              <option value="">All ZIPs</option>
+              {options?.zips.map(z => <option key={z} value={z}>{z}</option>)}
             </select>
           </div>
           <div className="pmos-field narrow">
             <label htmlFor="dir-type">Contact type</label>
             <select id="dir-type" value={filterType} onChange={e => setFilterType(e.target.value)}>
               <option value="">All Types</option>
-              {types.map(t => <option key={t} value={t}>{t}</option>)}
+              {options?.types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+          <div className="pmos-field narrow">
+            <label htmlFor="dir-property">Property</label>
+            <select id="dir-property" value={filterProperty} onChange={e => setFilterProperty(e.target.value)}>
+              <option value="">All Properties</option>
+              {options?.properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           {hasFilters && (
@@ -107,39 +118,45 @@ export const ContactsDirectory: React.FC = () => {
             <div className="pmos-skel" style={{ width: "65%" }} />
             <div className="pmos-skel" style={{ width: "52%" }} />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : contacts.length === 0 ? (
           <div className="pmos-table" style={{ padding: 14 }}>
             <div className="pmos-empty">No contacts found.</div>
           </div>
         ) : (
-          <table className="pmos-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Phone</th>
-                <th>Email</th>
-                <th>City / State</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(contact => (
-                <tr key={contact.id} onClick={() => setSelectedContact(contact)}>
-                  <td style={{ fontWeight: 600 }}>{contact.name}</td>
-                  <td>
-                    {contact.contact_type?.name
-                      ? <span className="pmos-chip">{contact.contact_type.name}</span>
-                      : "—"}
-                  </td>
-                  <td style={{ color: "var(--ink-soft)" }}>{contact.phone || "—"}</td>
-                  <td style={{ color: "var(--ink-soft)" }}>{contact.email || "—"}</td>
-                  <td style={{ color: "var(--ink-soft)" }}>
-                    {[contact.city, contact.state].filter(Boolean).join(", ") || "—"}
-                  </td>
+          <div className="pmos-table-scroll">
+            <table className="pmos-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>City / State</th>
+                  <th>Properties</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {contacts.map(contact => (
+                  <tr key={contact.id} onClick={() => setSelectedContact(contact)}>
+                    <td style={{ fontWeight: 600 }}>{contact.name}</td>
+                    <td>
+                      {contact.contact_type?.name
+                        ? <span className="pmos-chip">{contact.contact_type.name}</span>
+                        : "—"}
+                    </td>
+                    <td style={{ color: "var(--ink-soft)" }}>{contact.phone || "—"}</td>
+                    <td style={{ color: "var(--ink-soft)" }}>{contact.email || "—"}</td>
+                    <td style={{ color: "var(--ink-soft)" }}>
+                      {[contact.city, contact.state].filter(Boolean).join(", ") || "—"}
+                    </td>
+                    <td style={{ color: "var(--ink-soft)" }}>
+                      {(contact.properties ?? []).map(p => p.property?.name).filter(Boolean).join(", ") || "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -164,6 +181,10 @@ export const ContactsDirectory: React.FC = () => {
                 <div className="pmos-detail-row"><span className="k">City</span><span className="v">{selectedContact.city || "—"}</span></div>
                 <div className="pmos-detail-row"><span className="k">State</span><span className="v">{selectedContact.state || "—"}</span></div>
                 <div className="pmos-detail-row"><span className="k">ZIP</span><span className="v">{selectedContact.zip || "—"}</span></div>
+                <div className="pmos-detail-row">
+                  <span className="k">Properties</span>
+                  <span className="v">{(selectedContact.properties ?? []).map(p => p.property?.name).filter(Boolean).join(", ") || "—"}</span>
+                </div>
                 {selectedContact.notes && (
                   <div className="pmos-detail-row"><span className="k">Notes</span><span className="v">{selectedContact.notes}</span></div>
                 )}

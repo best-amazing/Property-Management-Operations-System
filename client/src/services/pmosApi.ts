@@ -7,15 +7,24 @@ import {
   User, CreateUserRequest, UpdateUserRequest,
   ActivityItem,
   StaffType, CreateStaffTypeRequest, UpdateStaffTypeRequest, Team,
-  Contact, ContactType, CreateContactRequest, UpdateContactRequest,
-  PolicyCategory, Policy, CreatePolicyCategoryRequest, CreatePolicyRequest2, UpdatePolicyRequest2,
+  Contact, ContactType, CreateContactRequest, UpdateContactRequest, ContactFilters, ContactFilterOptions,
+  PolicyCategory, Policy, CreatePolicyCategoryRequest, UpdatePolicyCategoryRequest, CreatePolicyRequest2, UpdatePolicyRequest2,
   Announcement, AnnouncementReceipt, CreateAnnouncementRequest,
-  Property,
+  Property, SavePropertyRequest,
 } from "../types/pmos";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1";
 
 const TOKEN_KEY = "token";
+
+function toQuery(params: object): string {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+  });
+  const str = qs.toString();
+  return str ? `?${str}` : "";
+}
 
 export const pmosApi = {
   getHeaders: () => {
@@ -117,12 +126,19 @@ export const pmosApi = {
   resetTickets: () => pmosApi.request<{ message: string }>("/admin/seed/tickets", { method: "POST" }),
 
   // ─── Contacts ─────────────────────────────────────────────────────────────
-  getContacts: () => pmosApi.request<Contact[]>("/client/contacts"),
-  getAdminContacts: () => pmosApi.request<Contact[]>("/admin/contacts"),
+  getContacts: (filters: ContactFilters = {}) => pmosApi.request<Contact[]>(`/client/contacts${toQuery(filters)}`),
+  getContactFilterOptions: () => pmosApi.request<ContactFilterOptions>("/client/contacts/filters"),
+  getAdminContacts: (filters: ContactFilters = {}) =>
+    pmosApi.request<Contact[]>(`/admin/contacts${toQuery({ status: "all", ...filters })}`),
+  getAdminContactFilterOptions: () => pmosApi.request<ContactFilterOptions>("/admin/contacts/filters"),
   getContact: (id: string) => pmosApi.request<Contact>(`/client/contacts/${id}`),
   getContactTypes: () => pmosApi.request<ContactType[]>("/admin/contacts/types"),
   createContactType: (data: { name: string }) =>
     pmosApi.request<ContactType>("/admin/contacts/types", { method: "POST", body: JSON.stringify(data) }),
+  updateContactType: (id: string, data: { name: string }) =>
+    pmosApi.request<ContactType>(`/admin/contacts/types/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteContactType: (id: string) =>
+    pmosApi.request<void>(`/admin/contacts/types/${id}`, { method: "DELETE" }),
   createContact: (data: CreateContactRequest) =>
     pmosApi.request<Contact>("/admin/contacts", { method: "POST", body: JSON.stringify(data) }),
   updateContact: (id: string, data: UpdateContactRequest) =>
@@ -131,12 +147,23 @@ export const pmosApi = {
     pmosApi.request<Contact>(`/admin/contacts/${id}`, { method: "PUT", body: JSON.stringify({ status: "archived" }) }),
 
   // ─── Properties ───────────────────────────────────────────────────────────
-  getProperties: () => pmosApi.request<Property[]>("/admin/contacts/properties"),
+  getProperties: () => pmosApi.request<Property[]>("/admin/properties"),
+  getMyProperties: () => pmosApi.request<Property[]>("/client/properties?mine=true"),
+  createProperty: (data: SavePropertyRequest) =>
+    pmosApi.request<Property>("/admin/properties", { method: "POST", body: JSON.stringify(data) }),
+  updateProperty: (id: string, data: SavePropertyRequest) =>
+    pmosApi.request<Property>(`/admin/properties/${id}`, { method: "PUT", body: JSON.stringify(data) }),
 
   // ─── Policies & Dashboard ─────────────────────────────────────────────────
   getPolicyCategories: () => pmosApi.request<PolicyCategory[]>("/admin/policies/categories"),
   createPolicyCategory: (data: CreatePolicyCategoryRequest) =>
     pmosApi.request<PolicyCategory>("/admin/policies/categories", { method: "POST", body: JSON.stringify(data) }),
+  updatePolicyCategory: (id: string, data: UpdatePolicyCategoryRequest) =>
+    pmosApi.request<PolicyCategory>(`/admin/policies/categories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deletePolicyCategory: (id: string) =>
+    pmosApi.request<void>(`/admin/policies/categories/${id}`, { method: "DELETE" }),
+  reorderPolicyCategories: (ids: string[]) =>
+    pmosApi.request<{ success: boolean }>("/admin/policies/categories/reorder", { method: "PUT", body: JSON.stringify({ ids }) }),
   getPolicies: () => pmosApi.request<Policy[]>("/admin/policies"),
   getDashboardPolicies: () => pmosApi.request<PolicyCategory[]>("/client/dashboard/policies"),
   createPolicy: (data: CreatePolicyRequest2) =>
@@ -145,6 +172,8 @@ export const pmosApi = {
     pmosApi.request<Policy>(`/admin/policies/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   archivePolicy: (id: string) =>
     pmosApi.request<Policy>(`/admin/policies/${id}`, { method: "PUT", body: JSON.stringify({ status: "archived" }) }),
+  reorderPolicies: (ids: string[]) =>
+    pmosApi.request<{ success: boolean }>("/admin/policies/reorder", { method: "PUT", body: JSON.stringify({ ids }) }),
 
   // ─── Announcements ────────────────────────────────────────────────────────
   getAdminAnnouncements: () => pmosApi.request<Announcement[]>("/admin/announcements"),
@@ -152,6 +181,8 @@ export const pmosApi = {
     pmosApi.request<Announcement>("/admin/announcements", { method: "POST", body: JSON.stringify(data) }),
   updateAnnouncement: (id: string, data: Partial<CreateAnnouncementRequest>) =>
     pmosApi.request<Announcement>(`/admin/announcements/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  cancelAnnouncement: (id: string) =>
+    pmosApi.request<Announcement>(`/admin/announcements/${id}/cancel`, { method: "POST" }),
   getAnnouncementReceipts: (id: string) =>
     pmosApi.request<AnnouncementReceipt[]>(`/admin/announcements/${id}/receipts`),
   getMyAnnouncements: () => pmosApi.request<AnnouncementReceipt[]>("/client/announcements"),
@@ -160,4 +191,3 @@ export const pmosApi = {
   acknowledgeAnnouncement: (id: string) =>
     pmosApi.request<{ success: boolean }>(`/client/announcements/${id}/acknowledge`, { method: "POST" }),
 };
-

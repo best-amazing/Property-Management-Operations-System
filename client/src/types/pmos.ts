@@ -248,13 +248,19 @@ export interface ContactType {
   id: string;
   name: string;
   created_at: string;
+  _count?: { contacts: number };
 }
 
 export interface Property {
   id: string;
   name: string;
-  city?: string;
-  state?: string;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  status?: string;
+  contacts?: PropertyContact[];
+  staff?: { user_id: string; property_id: string; user?: Pick<User, "id" | "display_name" | "username"> }[];
 }
 
 export interface PropertyContact {
@@ -267,19 +273,37 @@ export interface PropertyContact {
 export interface Contact {
   id: string;
   name: string;
-  phone?: string;
-  email?: string;
-  mailing_address?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  notes?: string;
+  phone?: string | null;
+  email?: string | null;
+  mailing_address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  notes?: string | null;
   status: string;
   type_id: string;
   contact_type?: ContactType;
   properties?: PropertyContact[];
   created_at: string;
   updated_at: string;
+}
+
+export interface ContactFilters {
+  search?: string;
+  type_id?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  property_id?: string;
+  status?: "active" | "archived" | "all";
+}
+
+export interface ContactFilterOptions {
+  cities: string[];
+  states: string[];
+  zips: string[];
+  types: ContactType[];
+  properties: Pick<Property, "id" | "name" | "city" | "state">[];
 }
 
 export interface CreateContactRequest {
@@ -292,78 +316,111 @@ export interface CreateContactRequest {
   zip?: string;
   notes?: string;
   type_id: string;
+  property_ids?: string[];
 }
 
-export interface UpdateContactRequest {
+export interface UpdateContactRequest extends Partial<CreateContactRequest> {
+  status?: string;
+}
+
+export interface SavePropertyRequest {
   name?: string;
-  phone?: string;
-  email?: string;
-  mailing_address?: string;
+  address?: string;
   city?: string;
   state?: string;
   zip?: string;
-  notes?: string;
   status?: string;
-  type_id?: string;
+  staff_ids?: string[];
 }
 
 // ─── Policies & Dashboard ─────────────────────────────────────────────────────
+export interface PolicyAttachment {
+  name: string;
+  url: string;
+}
+
 export interface PolicyCategory {
   id: string;
   name: string;
+  description?: string | null;
   order: number;
+  audience_staff_types?: string[] | null;
   policies?: Policy[];
+  _count?: { policies: number };
 }
 
 export interface Policy {
   id: string;
   title: string;
+  description?: string | null;
   content: string;
   status: string;
   category_id: string;
   category?: PolicyCategory;
   order: number;
-  attachments?: string[];
+  attachments?: (PolicyAttachment | string)[] | null;
   created_by: string;
+  created_by_name?: string;
+  updated_by?: string | null;
+  updated_by_name?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreatePolicyCategoryRequest {
   name: string;
+  description?: string;
   order?: number;
+  audience_staff_types?: string[];
 }
+
+export type UpdatePolicyCategoryRequest = Partial<CreatePolicyCategoryRequest>;
 
 export interface CreatePolicyRequest2 {
   title: string;
+  description?: string;
   content: string;
   category_id: string;
   order?: number;
-  attachments?: string[];
+  attachments?: PolicyAttachment[];
 }
 
-export interface UpdatePolicyRequest2 {
-  title?: string;
-  content?: string;
+export interface UpdatePolicyRequest2 extends Partial<CreatePolicyRequest2> {
   status?: string;
-  category_id?: string;
-  order?: number;
-  attachments?: string[];
 }
 
 // ─── Announcements ────────────────────────────────────────────────────────────
+export type AnnouncementPriority = "normal" | "important" | "urgent";
+export type AnnouncementTargetType = "all" | "user" | "team" | "staff_type";
+
+export interface AnnouncementStats {
+  total: number;
+  sent: number;
+  delivered: number;
+  viewed: number;
+  acknowledged: number;
+}
+
 export interface Announcement {
   id: string;
   title: string;
   content: string;
-  priority: "normal" | "important" | "urgent";
-  target_type: "all" | "user" | "team" | "staff_type";
-  target_id?: string;
+  priority: AnnouncementPriority;
+  target_type: AnnouncementTargetType;
+  target_id?: string | null;
+  target_ids?: string[] | null;
   require_ack: boolean;
   publish_at: string;
-  expires_at?: string;
+  expires_at?: string | null;
+  status: "scheduled" | "sent" | "cancelled";
+  dispatched_at?: string | null;
   created_by: string;
+  created_by_name?: string;
+  updated_by_name?: string;
+  audience?: string;
   created_at: string;
+  updated_at?: string;
+  stats?: AnnouncementStats;
   receipts?: AnnouncementReceipt[];
 }
 
@@ -372,19 +429,21 @@ export interface AnnouncementReceipt {
   announcement_id: string;
   announcement?: Announcement;
   user_id: string;
-  user?: User;
-  status: "delivered" | "viewed" | "acknowledged";
-  viewed_at?: string;
-  ack_at?: string;
+  user?: Pick<User, "id" | "display_name" | "username">;
+  status: "sent" | "delivered" | "viewed" | "acknowledged";
+  sent_at?: string;
+  delivered_at?: string | null;
+  viewed_at?: string | null;
+  ack_at?: string | null;
 }
 
 export interface CreateAnnouncementRequest {
   title: string;
   content: string;
-  priority?: "normal" | "important" | "urgent";
-  target_type: "all" | "user" | "team" | "staff_type";
-  target_id?: string;
+  priority?: AnnouncementPriority;
+  target_type: AnnouncementTargetType;
+  target_ids?: string[];
   require_ack?: boolean;
-  publish_at?: string;
-  expires_at?: string;
+  publish_at?: string | null;
+  expires_at?: string | null;
 }

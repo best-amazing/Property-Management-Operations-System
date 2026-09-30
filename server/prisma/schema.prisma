@@ -20,8 +20,9 @@ model User {
   led_teams     Team[]     @relation("TeamLead")
   created_at    DateTime   @default(now())
 
-  pending_logins PendingLogin[]
+  pending_logins        PendingLogin[]
   announcement_receipts AnnouncementReceipt[]
+  assigned_properties   PropertyStaff[]
 }
 
 model Department {
@@ -117,15 +118,15 @@ model PendingLogin {
 }
 
 model ContactType {
-  id          String    @id @default(cuid())
-  name        String    @unique // e.g., "Contractor", "Tenant", "Vendor"
-  contacts    Contact[]
-  created_at  DateTime  @default(now())
+  id         String    @id @default(cuid())
+  name       String    @unique // e.g., "Contractor", "Tenant", "Vendor"
+  contacts   Contact[]
+  created_at DateTime  @default(now())
 }
 
 model Contact {
   id              String      @id @default(cuid())
-  name            String      // Full Name or Company Name
+  name            String // Full Name or Company Name
   phone           String?
   email           String?
   mailing_address String?
@@ -136,82 +137,116 @@ model Contact {
   status          String      @default("active") // active | archived
   type_id         String
   contact_type    ContactType @relation(fields: [type_id], references: [id])
-  
-  properties      PropertyContact[]
-  
-  created_at      DateTime    @default(now())
-  updated_at      DateTime    @updatedAt
+
+  properties PropertyContact[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([city, state])
+  @@index([zip])
 }
 
 model Property {
-  id          String   @id @default(cuid())
-  name        String   // Property Name or Address
-  city        String?
-  state       String?
-  
-  contacts    PropertyContact[]
+  id         String   @id @default(cuid())
+  name       String // Property Name
+  address    String?
+  city       String?
+  state      String?
+  zip        String?
+  status     String   @default("active") // active | archived
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  contacts PropertyContact[]
+  staff    PropertyStaff[]
 }
 
 model PropertyContact {
   contact_id  String
   property_id String
-  contact     Contact  @relation(fields: [contact_id], references: [id])
-  property    Property @relation(fields: [property_id], references: [id])
-  
+  contact     Contact  @relation(fields: [contact_id], references: [id], onDelete: Cascade)
+  property    Property @relation(fields: [property_id], references: [id], onDelete: Cascade)
+
   @@id([contact_id, property_id])
 }
 
+model PropertyStaff {
+  user_id     String
+  property_id String
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  property    Property @relation(fields: [property_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, property_id])
+}
+
+// A PolicyCategory is an admin-configurable section of the staff knowledge
+// dashboard (e.g. "Company Policies", "Processing Procedures", "Resources").
 model PolicyCategory {
-  id          String   @id @default(cuid())
-  name        String   @unique // e.g., "Maintenance Procedures"
-  order       Int      @default(0)
-  policies    Policy[]
+  id                   String   @id @default(cuid())
+  name                 String   @unique // e.g., "Maintenance Procedures"
+  description          String?
+  order                Int      @default(0)
+  audience_staff_types Json? // array of StaffType IDs; empty/null = visible to all staff
+  created_at           DateTime @default(now())
+  policies             Policy[]
 }
 
 model Policy {
   id          String         @id @default(cuid())
   title       String
+  description String?
   content     String
   status      String         @default("draft") // draft | published | archived
   category_id String
   category    PolicyCategory @relation(fields: [category_id], references: [id])
   order       Int            @default(0)
-  
-  attachments Json?          // array of URLs/paths
-  
-  created_by  String
-  created_at  DateTime       @default(now())
-  updated_at  DateTime       @updatedAt
+
+  attachments Json? // array of { name, url }
+
+  created_by String
+  updated_by String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model Announcement {
-  id              String   @id @default(cuid())
-  title           String
-  content         String
-  priority        String   @default("normal") // normal | important | urgent
-  target_type     String   // all | user | team | staff_type
-  target_id       String?  // ID of the user, team, or staff_type (null if 'all')
-  
-  require_ack     Boolean  @default(false)
-  publish_at      DateTime @default(now())
-  expires_at      DateTime?
-  
-  created_by      String
-  created_at      DateTime @default(now())
-  
-  receipts        AnnouncementReceipt[]
+  id          String  @id @default(cuid())
+  title       String
+  content     String
+  priority    String  @default("normal") // normal | important | urgent
+  target_type String // all | user | team | staff_type
+  target_id   String? // legacy single target; superseded by target_ids
+  target_ids  Json? // array of user / team / staff_type IDs (null if 'all')
+
+  require_ack   Boolean   @default(false)
+  publish_at    DateTime  @default(now())
+  expires_at    DateTime?
+  status        String    @default("sent") // scheduled | sent | cancelled. Defaults to "sent" so pre-existing rows are never re-dispatched; the API sets "scheduled" explicitly.
+  dispatched_at DateTime?
+
+  created_by String
+  updated_by String?
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  receipts AnnouncementReceipt[]
+
+  @@index([status, publish_at])
 }
 
 model AnnouncementReceipt {
   id              String       @id @default(cuid())
   announcement_id String
-  announcement    Announcement @relation(fields: [announcement_id], references: [id])
+  announcement    Announcement @relation(fields: [announcement_id], references: [id], onDelete: Cascade)
   user_id         String
-  user            User         @relation(fields: [user_id], references: [id])
-  
-  status          String       @default("delivered") // delivered | viewed | acknowledged
-  viewed_at       DateTime?
-  ack_at          DateTime?
-  
+  user            User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  status       String    @default("sent") // sent | delivered | viewed | acknowledged
+  sent_at      DateTime  @default(now())
+  delivered_at DateTime?
+  viewed_at    DateTime?
+  ack_at       DateTime?
+
   @@unique([announcement_id, user_id])
 }

@@ -1,30 +1,35 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../../utils/prisma";
+import { contactInclude, findContacts, getContactFilterOptions } from "../../services/contact.service";
 
 const router = Router();
-const prisma = new PrismaClient();
 
-// GET /client/contacts
-// Staff read-only access to view active contacts
+// GET /client/contacts?search=&type_id=&city=&state=&zip=&property_id=
+// Staff read-only access to active contacts
 router.get("/", async (req, res) => {
   try {
-    const contacts = await prisma.contact.findMany({
-      where: { status: "active" },
-      include: { contact_type: true, properties: true }
-    });
-    res.json(contacts);
+    const query = { ...(req.query as Record<string, unknown>), status: "active" };
+    res.json(await findContacts(query));
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch contacts" });
+  }
+});
+
+// GET /client/contacts/filters — dropdown options for the directory
+router.get("/filters", async (_req, res) => {
+  try {
+    res.json(await getContactFilterOptions("active"));
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch filter options" });
   }
 });
 
 // GET /client/contacts/:id
 router.get("/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    const contact = await prisma.contact.findUnique({
-      where: { id },
-      include: { contact_type: true, properties: true }
+    const contact = await prisma.contact.findFirst({
+      where: { id: req.params.id, status: "active" },
+      include: contactInclude,
     });
     if (!contact) return res.status(404).json({ error: "Contact not found" });
     res.json(contact);

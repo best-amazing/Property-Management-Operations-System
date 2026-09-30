@@ -1,3 +1,5 @@
+import { Policy, PolicyAttachment } from "../types/pmos";
+
 // Colour palette from the HTML mockup
 const PALETTE = [
   { name: 'Rust',     color: '#B23A2E', soft: '#F6DEDA' },
@@ -39,3 +41,7 @@ export function fmtDate(iso: string) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
     ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
+
+// Policy attachments are stored as { name, url }; older records may be bare URLs.
+export const normalizeAttachments = (list: Policy["attachments"]): PolicyAttachment[] =>
+  (list ?? []).map(a => (typeof a === "string" ? { name: a, url: a } : a));

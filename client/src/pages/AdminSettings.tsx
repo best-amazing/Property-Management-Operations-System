@@ -10,6 +10,7 @@ import { usePipelines, useUsers, useStaffTypes, useTeams, useDepartments, QUERY_
 import { AdminContacts } from "../components/AdminContacts";
 import { AdminPolicies } from "../components/AdminPolicies";
 import { AdminAnnouncements } from "../components/AdminAnnouncements";
+import { AdminProperties } from "../components/AdminProperties";
 
 const PALETTE = [
   { name: "Rust", color: "#B23A2E", soft: "#F6DEDA" },
@@ -37,7 +38,7 @@ function TagRow({ name, swatch, sla, onChange, onRemove }: {
   );
 }
 
-type AdminTab = "team" | "teams" | "staffTypes" | "departments" | "services" | "contacts" | "policies" | "announcements";
+type AdminTab = "team" | "teams" | "staffTypes" | "departments" | "services" | "contacts" | "properties" | "policies" | "announcements";
 
 export const AdminSettings: React.FC = () => {
   const navigate = useNavigate();
@@ -390,12 +391,14 @@ export const AdminSettings: React.FC = () => {
           <button className={`pmos-seg-btn ${activeTab === "departments" ? "active" : ""}`} onClick={() => setActiveTab("departments")}>Departments</button>
           <button className={`pmos-seg-btn ${activeTab === "services" ? "active" : ""}`} onClick={() => setActiveTab("services")}>Pipelines</button>
           <button className={`pmos-seg-btn ${activeTab === "contacts" ? "active" : ""}`} onClick={() => setActiveTab("contacts")}>Contacts</button>
+          <button className={`pmos-seg-btn ${activeTab === "properties" ? "active" : ""}`} onClick={() => setActiveTab("properties")}>Properties</button>
           <button className={`pmos-seg-btn ${activeTab === "policies" ? "active" : ""}`} onClick={() => setActiveTab("policies")}>Policies</button>
           <button className={`pmos-seg-btn ${activeTab === "announcements" ? "active" : ""}`} onClick={() => setActiveTab("announcements")}>Announcements</button>
         </div>
 
         {activeTab === "contacts" && <AdminContacts />}
-        {activeTab === "policies" && <AdminPolicies />}
+        {activeTab === "properties" && <AdminProperties users={users} />}
+        {activeTab === "policies" && <AdminPolicies staffTypes={staffTypes} />}
         {activeTab === "announcements" && <AdminAnnouncements users={users} teams={teams} staffTypes={staffTypes} />}
 
         {/* ── Users tab ──────────────────────────────────────────────────── */}

@@ -9,6 +9,7 @@ import usersRouter from "./users";
 import contactsRouter from "./contacts";
 import dashboardRouter from "./dashboard";
 import announcementsRouter from "./announcements";
+import propertiesRouter from "./properties";
 import { requireAuth } from "../../utils/authMiddleware";
 
 const router = Router();
@@ -25,5 +26,6 @@ router.use("/users", usersRouter);
 router.use("/contacts", contactsRouter);
 router.use("/dashboard", dashboardRouter);
 router.use("/announcements", announcementsRouter);
+router.use("/properties", propertiesRouter);
 
 export default router;

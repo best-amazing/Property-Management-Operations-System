@@ -1,115 +1,195 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { pmosApi } from "../services/pmosApi";
-import { Policy, CreatePolicyRequest2 } from "../types/pmos";
+import { Policy, PolicyAttachment, PolicyCategory, StaffType } from "../types/pmos";
 import { useAdminPolicies, usePolicyCategories } from "../hooks/useApi";
+import { normalizeAttachments } from "../utils/ui";
 
-export const AdminPolicies: React.FC = () => {
+interface PolicyForm {
+  title: string;
+  description: string;
+  content: string;
+  category_id: string;
+  attachments: PolicyAttachment[];
+}
+
+interface CategoryForm {
+  name: string;
+  description: string;
+  audience_staff_types: string[];
+}
+
+const emptyPolicy = (): PolicyForm => ({ title: "", description: "", content: "", category_id: "", attachments: [] });
+const emptyCategory = (): CategoryForm => ({ name: "", description: "", audience_staff_types: [] });
+
+// Swaps an item with its neighbour and returns the reordered id list.
+function moved<T extends { id: string }>(items: T[], index: number, dir: -1 | 1): string[] | null {
+  const target = index + dir;
+  if (target < 0 || target >= items.length) return null;
+  const ids = items.map(i => i.id);
+  [ids[index], ids[target]] = [ids[target], ids[index]];
+  return ids;
+}
+
+export const AdminPolicies: React.FC<{ staffTypes: StaffType[] }> = ({ staffTypes }) => {
   const { data: policies = [], isLoading: loadingPolicies, refetch: refetchPolicies } = useAdminPolicies();
   const { data: categories = [], isLoading: loadingCategories, refetch: refetchCategories } = usePolicyCategories();
-  const [showForm, setShowForm] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null);
+  const [form, setForm] = useState<PolicyForm>(emptyPolicy);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [catForm, setCatForm] = useState<CategoryForm>(emptyCategory);
 
-  // Form state
-  const [form, setForm] = useState<CreatePolicyRequest2>({ title: "", content: "", category_id: "" });
-
-  const fetchData = async () => {
+  const fetchData = () => {
     refetchPolicies();
     refetchCategories();
   };
 
-  const handleCreateCategory = async () => {
-    if (!newCatName.trim()) return;
+  const run = async (action: () => Promise<unknown>, success: string) => {
     try {
-      await pmosApi.createPolicyCategory({ name: newCatName.trim() });
-      toast.success("Category created");
-      setNewCatName("");
+      await action();
+      toast.success(success);
       fetchData();
-    } catch (e: any) { toast.error(e.message); }
+      return true;
+    } catch (e: any) {
+      toast.error(e.message);
+      return false;
+    }
   };
 
-  const handleCreatePolicy = async (e: React.FormEvent) => {
+  // ── Categories ──────────────────────────────────────────────────────────────
+  const startEditCategory = (c: PolicyCategory) => {
+    setEditingCatId(c.id);
+    setCatForm({ name: c.name, description: c.description ?? "", audience_staff_types: c.audience_staff_types ?? [] });
+  };
+  const cancelCategory = () => { setEditingCatId(null); setCatForm(emptyCategory()); };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catForm.name.trim()) { toast.error("Category name is required."); return; }
+    const ok = editingCatId
+      ? await run(() => pmosApi.updatePolicyCategory(editingCatId, catForm), "Category updated")
+      : await run(() => pmosApi.createPolicyCategory(catForm), "Category created");
+    if (ok) cancelCategory();
+  };
+
+  const toggleAudience = (id: string) => {
+    const ids = catForm.audience_staff_types;
+    setCatForm({ ...catForm, audience_staff_types: ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id] });
+  };
+
+  const moveCategory = (index: number, dir: -1 | 1) => {
+    const ids = moved(categories, index, dir);
+    if (ids) run(() => pmosApi.reorderPolicyCategories(ids), "Order updated");
+  };
+
+  const deleteCategory = (id: string) => {
+    if (!confirm("Delete this category?")) return;
+    run(() => pmosApi.deletePolicyCategory(id), "Category deleted");
+  };
+
+  // ── Policies ────────────────────────────────────────────────────────────────
+  const startEditPolicy = (p: Policy) => {
+    setEditingPolicyId(p.id);
+    setForm({
+      title: p.title, description: p.description ?? "", content: p.content, category_id: p.category_id,
+      attachments: normalizeAttachments(p.attachments),
+    });
+    document.getElementById("admin-policy-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const cancelPolicy = () => { setEditingPolicyId(null); setForm(emptyPolicy()); };
+
+  const handleSavePolicy = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim() || !form.category_id) { toast.error("Title and category are required."); return; }
-    try {
-      await pmosApi.createPolicy(form);
-      toast.success("Policy created as draft");
-      setForm({ title: "", content: "", category_id: "" });
-      setShowForm(false);
-      fetchData();
-    } catch (e: any) { toast.error(e.message); }
+    const payload = { ...form, attachments: form.attachments.filter(a => a.url.trim()) };
+    const ok = editingPolicyId
+      ? await run(() => pmosApi.updatePolicy(editingPolicyId, payload), "Policy updated")
+      : await run(() => pmosApi.createPolicy(payload), "Policy created as draft");
+    if (ok) cancelPolicy();
   };
 
-  const toggleStatus = async (policy: Policy) => {
-    const newStatus = policy.status === "published" ? "draft" : "published";
-    try {
-      await pmosApi.updatePolicy(policy.id, { status: newStatus });
-      toast.success(newStatus === "published" ? "Policy published" : "Policy unpublished");
-      fetchData();
-    } catch (e: any) { toast.error(e.message); }
+  const setAttachment = (i: number, patch: Partial<PolicyAttachment>) =>
+    setForm({ ...form, attachments: form.attachments.map((a, idx) => (idx === i ? { ...a, ...patch } : a)) });
+
+  const toggleStatus = (p: Policy) => {
+    const status = p.status === "published" ? "draft" : "published";
+    run(() => pmosApi.updatePolicy(p.id, { status }), status === "published" ? "Policy published" : "Policy unpublished");
   };
 
-  const handleArchive = async (id: string) => {
+  const archive = (id: string) => {
     if (!confirm("Archive this policy?")) return;
-    try {
-      await pmosApi.archivePolicy(id);
-      toast.success("Policy archived");
-      fetchData();
-    } catch (e: any) { toast.error(e.message); }
+    run(() => pmosApi.archivePolicy(id), "Policy archived");
   };
 
-  const handleRestore = async (id: string) => {
-    try {
-      await pmosApi.updatePolicy(id, { status: "draft" });
-      toast.success("Policy restored as draft");
-      fetchData();
-    } catch (e: any) { toast.error(e.message); }
+  const movePolicy = (list: Policy[], index: number, dir: -1 | 1) => {
+    const ids = moved(list, index, dir);
+    if (ids) run(() => pmosApi.reorderPolicies(ids), "Order updated");
   };
 
-  const statusColor = (s: string) => {
-    if (s === "published") return { background: "#E4ECE9", color: "#1F4B43" };
-    if (s === "archived") return { background: "#F6DEDA", color: "#B23A2E" };
-    return { background: "#F8E9D3", color: "#D98E3B" };
-  };
+  if (loadingPolicies || loadingCategories) return <div className="pmos-empty" style={{ padding: "28px 0" }}>Loading…</div>;
 
-  return <div className="pmos-empty" style={{ padding: "28px 0" }}>Loading…</div>;
+  const visiblePolicies = policies.filter(p => (showArchived ? p.status === "archived" : p.status !== "archived"));
+  const audienceLabel = (c: PolicyCategory) => {
+    const ids = c.audience_staff_types ?? [];
+    if (!ids.length) return "All staff";
+    return staffTypes.filter(s => ids.includes(s.id)).map(s => s.name).join(", ") || "Selected staff types";
+  };
 
   return (
     <div>
-      {/* Toolbar */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center", justifyContent: "flex-end" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--ink-soft)", cursor: "pointer" }}>
+      <div className="pmos-toolbar" style={{ justifyContent: "flex-end" }}>
+        <label className="check">
           <input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)} style={{ width: 14, height: 14, margin: 0 }} />
           Show archived
         </label>
       </div>
 
-      {/* Policy List */}
+      {/* Policy list, grouped by category in dashboard order */}
       <div style={{ marginBottom: 24 }}>
-        {policies
-          .filter(p => showArchived ? p.status === "archived" : p.status !== "archived")
-          .map(p => {
-            const isArchived = p.status === "archived";
-            return (
-              <div key={p.id} className="pmos-admin-row" style={isArchived ? { opacity: 0.5 } : {}}>
-                <div className="grow">
-                  <div className="lbl">{p.title}</div>
-                  <div className="sub">{p.category?.name || "Uncategorized"} · Updated {new Date(p.updated_at).toLocaleDateString()}</div>
-                </div>
-                <span style={{ ...statusColor(p.status), padding: "3px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>{p.status}</span>
-                {isArchived
-                  ? <button className="pmos-btn sm" onClick={() => handleRestore(p.id)}>Restore</button>
-                  : <>
-                      <button className="pmos-btn sm" onClick={() => toggleStatus(p)}>{p.status === "published" ? "Unpublish" : "Publish"}</button>
-                      <button className="pmos-btn sm ghost-danger" onClick={() => handleArchive(p.id)}>Archive</button>
-                    </>
-                }
-              </div>
-            );
-          })
-        }
-        {policies.filter(p => showArchived ? p.status === "archived" : p.status !== "archived").length === 0 && (
+        {categories.map(cat => {
+          const list = visiblePolicies.filter(p => p.category_id === cat.id);
+          if (!list.length) return null;
+          return (
+            <div key={cat.id} style={{ marginBottom: 14 }}>
+              <div className="pmos-kb-group"><div className="lbl">{cat.name}</div></div>
+              {list.map((p, i) => {
+                const isArchived = p.status === "archived";
+                const pill = p.status === "published" ? "" : isArchived ? "danger" : "warn";
+                const attachments = normalizeAttachments(p.attachments).length;
+                return (
+                  <div key={p.id} className="pmos-admin-row" style={isArchived ? { opacity: 0.55 } : {}}>
+                    {!showArchived && (
+                      <div className="pmos-order-btns">
+                        <button title="Move up" disabled={i === 0} onClick={() => movePolicy(list, i, -1)}>▲</button>
+                        <button title="Move down" disabled={i === list.length - 1} onClick={() => movePolicy(list, i, 1)}>▼</button>
+                      </div>
+                    )}
+                    <div className="grow">
+                      <div className="lbl">{p.title}</div>
+                      {p.description && <div className="sub">{p.description}</div>}
+                      <div className="sub">
+                        Updated {new Date(p.updated_at).toLocaleDateString()}
+                        {p.updated_by_name ? ` by ${p.updated_by_name}` : ""}
+                        {attachments ? ` · ${attachments} attachment${attachments > 1 ? "s" : ""}` : ""}
+                      </div>
+                    </div>
+                    <span className={`pmos-pill ${pill}`}>{p.status}</span>
+                    <button className="pmos-btn sm" onClick={() => startEditPolicy(p)}>Edit</button>
+                    {isArchived
+                      ? <button className="pmos-btn sm" onClick={() => run(() => pmosApi.updatePolicy(p.id, { status: "draft" }), "Policy restored as draft")}>Restore</button>
+                      : <>
+                          <button className="pmos-btn sm" onClick={() => toggleStatus(p)}>{p.status === "published" ? "Unpublish" : "Publish"}</button>
+                          <button className="pmos-btn sm ghost-danger" onClick={() => archive(p.id)}>Archive</button>
+                        </>
+                    }
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+        {visiblePolicies.length === 0 && (
           <div style={{ textAlign: "center", padding: 30, color: "var(--ink-soft)" }}>
             {showArchived ? "No archived policies." : "No policies created yet."}
           </div>
@@ -117,28 +197,63 @@ export const AdminPolicies: React.FC = () => {
       </div>
 
       <hr className="pmos-divider" />
-      <div style={{ fontWeight: 600, fontSize: 14, color: "var(--ink)", marginBottom: 16 }}>Management & Creation</div>
+      <div className="pmos-section-title">Management &amp; Creation</div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {/* Category Manager */}
-        <div style={{ background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 8, padding: 16 }}>
-          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>1. Manage Policy Categories</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-            {categories.map(c => (
-              <span key={c.id} style={{ background: "var(--primary-soft)", color: "var(--primary)", padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 500 }}>{c.name}</span>
+        {/* Category (dashboard section) manager */}
+        <div className="pmos-panel">
+          <div className="pmos-panel-title">1. Dashboard Sections / Categories</div>
+          <div style={{ marginBottom: 14 }}>
+            {categories.map((c, i) => (
+              <div key={c.id} className="pmos-admin-row">
+                <div className="pmos-order-btns">
+                  <button title="Move up" disabled={i === 0} onClick={() => moveCategory(i, -1)}>▲</button>
+                  <button title="Move down" disabled={i === categories.length - 1} onClick={() => moveCategory(i, 1)}>▼</button>
+                </div>
+                <div className="grow">
+                  <div className="lbl">{c.name}</div>
+                  <div className="sub">
+                    {c.description ? `${c.description} · ` : ""}Visible to: {audienceLabel(c)} · {c._count?.policies ?? 0} item(s)
+                  </div>
+                </div>
+                <button className="pmos-btn sm" onClick={() => startEditCategory(c)}>Edit</button>
+                <button className="pmos-btn sm ghost-danger" onClick={() => deleteCategory(c.id)}>Delete</button>
+              </div>
             ))}
             {categories.length === 0 && <span style={{ color: "var(--ink-soft)", fontSize: 12 }}>No categories created yet.</span>}
           </div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <input style={{ flex: 1, padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 13 }} placeholder="New category name…" value={newCatName} onChange={e => setNewCatName(e.target.value)} />
-            <button className="pmos-btn primary sm" onClick={handleCreateCategory}>Add Category</button>
-          </div>
+          <form onSubmit={handleSaveCategory}>
+            <div className="pmos-row2">
+              <div className="pmos-field"><label>{editingCatId ? "Rename Category" : "New Category"}</label><input value={catForm.name} onChange={e => setCatForm({ ...catForm, name: e.target.value })} placeholder="e.g. Processing Procedures" /></div>
+              <div className="pmos-field"><label>Description (optional)</label><input value={catForm.description} onChange={e => setCatForm({ ...catForm, description: e.target.value })} /></div>
+            </div>
+            {staffTypes.length > 0 && (
+              <div className="pmos-field">
+                <label>Visible to staff types (none selected = all staff)</label>
+                <div className="pmos-check-list">
+                  {staffTypes.map(s => (
+                    <label key={s.id}>
+                      <input type="checkbox" checked={catForm.audience_staff_types.includes(s.id)} onChange={() => toggleAudience(s.id)} />
+                      {s.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="submit" className="pmos-btn primary sm">{editingCatId ? "Save Category" : "Add Category"}</button>
+              {editingCatId && <button type="button" className="pmos-btn sm" onClick={cancelCategory}>Cancel</button>}
+            </div>
+          </form>
         </div>
 
-        {/* Create Policy Form */}
-        <div style={{ background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 8, padding: 16 }}>
-          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>2. Create New Policy</div>
-          <form onSubmit={handleCreatePolicy}>
+        {/* Create / Edit Policy Form */}
+        <div className="pmos-panel" id="admin-policy-form">
+          <div className="pmos-panel-title">
+            {editingPolicyId ? `Edit: ${form.title}` : "2. Create New Policy / Procedure"}
+            {editingPolicyId && <button className="pmos-btn sm" onClick={cancelPolicy}>Cancel edit</button>}
+          </div>
+          <form onSubmit={handleSavePolicy}>
             <div className="pmos-row2">
               <div className="pmos-field"><label>Title</label><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required /></div>
               <div className="pmos-field"><label>Category</label>
@@ -148,8 +263,22 @@ export const AdminPolicies: React.FC = () => {
                 </select>
               </div>
             </div>
-            <div className="pmos-field"><label>Content</label><textarea rows={8} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} style={{ fontFamily: "inherit", width: "100%" }} /></div>
-            <button type="submit" className="pmos-btn primary" style={{ marginTop: 8 }}>Create (as Draft)</button>
+            <div className="pmos-field"><label>Short Description</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="One-line summary shown to staff" /></div>
+            <div className="pmos-field"><label>Content</label><textarea rows={8} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} style={{ fontFamily: "inherit" }} /></div>
+            <div className="pmos-field">
+              <label>Supporting Documents (links)</label>
+              <div className="pmos-dyn-rows">
+                {form.attachments.map((a, i) => (
+                  <div key={i} className="pmos-dyn-row">
+                    <input placeholder="Document name" value={a.name} onChange={e => setAttachment(i, { name: e.target.value })} />
+                    <input placeholder="https://…" value={a.url} onChange={e => setAttachment(i, { url: e.target.value })} />
+                    <button type="button" className="pmos-row-x" onClick={() => setForm({ ...form, attachments: form.attachments.filter((_, idx) => idx !== i) })}>×</button>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="pmos-btn sm" onClick={() => setForm({ ...form, attachments: [...form.attachments, { name: "", url: "" }] })}>+ Add document link</button>
+            </div>
+            <button type="submit" className="pmos-btn primary" style={{ marginTop: 8 }}>{editingPolicyId ? "Save Changes" : "Create (as Draft)"}</button>
           </form>
         </div>
       </div>

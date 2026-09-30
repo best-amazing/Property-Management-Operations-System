@@ -118,6 +118,7 @@ export const AnnouncementsBell: React.FC = () => {
     <div style={{ position: "relative" }} ref={ref}>
       {/* Bell Button */}
       <button
+        aria-label="Notifications"
         onClick={() => setOpen(!open)}
         className="pmos-btn sm"
         style={{ position: "relative", padding: "5px 10px", display: "flex", alignItems: "center", gap: 4 }}
@@ -166,7 +167,7 @@ export const AnnouncementsBell: React.FC = () => {
               receipts.map((receipt) => {
                 const ann = receipt.announcement;
                 if (!ann) return null;
-                const isUnread = receipt.status === "delivered";
+                const isUnread = receipt.status === "delivered" || receipt.status === "sent";
                 const needsAck = ann.require_ack && receipt.status !== "acknowledged";
 
                 return (
@@ -201,6 +202,9 @@ export const AnnouncementsBell: React.FC = () => {
                     </div>
                     <div style={{ fontSize: 12, color: T.inkSoft, lineHeight: 1.4, whiteSpace: "pre-wrap" }}>
                       {ann.content.length > 100 ? ann.content.slice(0, 100) + "…" : ann.content}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: T.inkSoft, marginTop: 5 }}>
+                      From {ann.created_by_name ?? "Admin"}{ann.audience ? ` · To ${ann.audience}` : ""} · {new Date(ann.publish_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                     </div>
                     {(needsAck || isUnread) && (
                       <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -298,6 +302,11 @@ export const AnnouncementsBell: React.FC = () => {
                 }}>
                   {urgentPopup.announcement.content}
                 </p>
+                <div style={{ fontSize: 11.5, color: T.inkSoft, marginTop: 12 }}>
+                  From {urgentPopup.announcement.created_by_name ?? "Admin"}
+                  {urgentPopup.announcement.audience ? ` · To ${urgentPopup.announcement.audience}` : ""}
+                  {" · "}{new Date(urgentPopup.announcement.publish_at).toLocaleString()}
+                </div>
               </div>
               {/* Footer */}
               <div style={{
