@@ -90,6 +90,93 @@ export function parseContact(body: Record<string, any>, partial: boolean): { err
   return { data, propertyIds };
 }
 
+// ─── Bulk import (e.g. from a .vcf file parsed on the client) ────────────────
+
+export const MAX_IMPORT_ROWS = 5000;
+
+export type ImportRowStatus = "ready" | "created" | "duplicate" | "invalid";
+
+export interface ImportRowResult {
+  index: number;
+  status: ImportRowStatus;
+  error?: string;
+  duplicate_of?: { id: string; name: string; reason: "email" | "phone"; in_file?: boolean };
+}
+
+const normalizeEmail = (v: unknown) => (typeof v === "string" ? v.trim().toLowerCase() : "");
+
+// Compares numbers by their last 10 digits so "+1 (414) 555-0101" matches
+// "414-555-0101". Very short values (extensions, junk) never match.
+function normalizePhone(v: unknown): string {
+  const digits = typeof v === "string" ? v.replace(/\D/g, "") : "";
+  return digits.length >= 7 ? digits.slice(-10) : "";
+}
+
+// Validates rows and finds duplicates (against existing contacts, including
+// archived ones, and earlier rows in the same file). With dryRun nothing is
+// written; otherwise valid, non-duplicate rows — plus duplicates the admin
+// explicitly allowed — are created in one transaction.
+export async function importContacts(
+  rows: Record<string, any>[],
+  options: { propertyIds?: string[]; dryRun?: boolean } = {}
+): Promise<{ results: ImportRowResult[]; summary: Record<ImportRowStatus, number> }> {
+  const existing = await prisma.contact.findMany({ select: { id: true, name: true, email: true, phone: true } });
+  const byEmail = new Map<string, { id: string; name: string; in_file?: boolean }>();
+  const byPhone = new Map<string, { id: string; name: string; in_file?: boolean }>();
+  for (const c of existing) {
+    if (normalizeEmail(c.email)) byEmail.set(normalizeEmail(c.email), c);
+    if (normalizePhone(c.phone)) byPhone.set(normalizePhone(c.phone), c);
+  }
+
+  const typeIds = new Set((await prisma.contactType.findMany({ select: { id: true } })).map(t => t.id));
+
+  const results: ImportRowResult[] = [];
+  const toCreate: { index: number; data: Record<string, any> }[] = [];
+
+  rows.forEach((row, index) => {
+    const parsed = parseContact({ ...row, status: "active", property_ids: undefined }, false);
+    if ("error" in parsed) return results.push({ index, status: "invalid", error: parsed.error });
+    if (!typeIds.has(parsed.data.type_id)) return results.push({ index, status: "invalid", error: "Unknown contact type" });
+
+    const email = normalizeEmail(parsed.data.email);
+    const phone = normalizePhone(parsed.data.phone);
+    const match = (email && byEmail.get(email)) || (phone && byPhone.get(phone)) || undefined;
+    if (match && !row.allow_duplicate) {
+      const reason = email && byEmail.get(email) === match ? "email" : "phone";
+      return results.push({ index, status: "duplicate", duplicate_of: { id: match.id, name: match.name, reason, in_file: match.in_file } });
+    }
+
+    // Later rows in the same file are checked against this one
+    const self = { id: `row-${index}`, name: parsed.data.name, in_file: true };
+    if (email && !byEmail.has(email)) byEmail.set(email, self);
+    if (phone && !byPhone.has(phone)) byPhone.set(phone, self);
+
+    results.push({ index, status: "ready" });
+    toCreate.push({ index, data: parsed.data });
+  });
+
+  if (!options.dryRun && toCreate.length) {
+    const propertyIds = options.propertyIds ?? [];
+    await prisma.$transaction(async tx => {
+      const created = await tx.contact.createManyAndReturn({
+        data: toCreate.map(r => r.data as Prisma.ContactCreateManyInput),
+        select: { id: true },
+      });
+      if (propertyIds.length) {
+        await tx.propertyContact.createMany({
+          data: created.flatMap(c => propertyIds.map(property_id => ({ contact_id: c.id, property_id }))),
+          skipDuplicates: true,
+        });
+      }
+    }, { timeout: 60_000 });
+    for (const r of toCreate) results[r.index].status = "created";
+  }
+
+  const summary: Record<ImportRowStatus, number> = { ready: 0, created: 0, duplicate: 0, invalid: 0 };
+  results.forEach(r => summary[r.status]++);
+  return { results, summary };
+}
+
 export async function saveContact(id: string | null, data: Record<string, any>, propertyIds?: string[]) {
   return prisma.$transaction(async tx => {
     const contact = id

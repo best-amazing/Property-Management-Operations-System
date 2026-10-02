@@ -7,7 +7,12 @@ import healthRouter from "./api/health";
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+// Bulk contact import sends up to 5,000 rows; everything else keeps the
+// default 100kb body limit.
+const jsonDefault = express.json();
+const jsonLarge = express.json({ limit: "5mb" });
+const LARGE_BODY_PATHS = new Set(["/api/v1/admin/contacts/import"]);
+app.use((req, res, next) => (LARGE_BODY_PATHS.has(req.path) ? jsonLarge : jsonDefault)(req, res, next));
 
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/client", clientRouter);

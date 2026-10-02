@@ -8,6 +8,7 @@ import {
   ActivityItem,
   StaffType, CreateStaffTypeRequest, UpdateStaffTypeRequest, Team,
   Contact, ContactType, CreateContactRequest, UpdateContactRequest, ContactFilters, ContactFilterOptions,
+  ImportContactRow, ImportContactsResponse,
   PolicyCategory, Policy, CreatePolicyCategoryRequest, UpdatePolicyCategoryRequest, CreatePolicyRequest2, UpdatePolicyRequest2,
   Announcement, AnnouncementReceipt, CreateAnnouncementRequest,
   Property, SavePropertyRequest,
@@ -143,6 +144,8 @@ export const pmosApi = {
     pmosApi.request<Contact>("/admin/contacts", { method: "POST", body: JSON.stringify(data) }),
   updateContact: (id: string, data: UpdateContactRequest) =>
     pmosApi.request<Contact>(`/admin/contacts/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  importContacts: (data: { contacts: ImportContactRow[]; property_ids?: string[]; dry_run?: boolean }) =>
+    pmosApi.request<ImportContactsResponse>("/admin/contacts/import", { method: "POST", body: JSON.stringify(data) }),
   archiveContact: (id: string) =>
     pmosApi.request<Contact>(`/admin/contacts/${id}`, { method: "PUT", body: JSON.stringify({ status: "archived" }) }),
 

@@ -323,6 +323,24 @@ export interface UpdateContactRequest extends Partial<CreateContactRequest> {
   status?: string;
 }
 
+export interface ImportContactRow extends CreateContactRequest {
+  allow_duplicate?: boolean;
+}
+
+export type ImportRowStatus = "ready" | "created" | "duplicate" | "invalid";
+
+export interface ImportRowResult {
+  index: number;
+  status: ImportRowStatus;
+  error?: string;
+  duplicate_of?: { id: string; name: string; reason: "email" | "phone"; in_file?: boolean };
+}
+
+export interface ImportContactsResponse {
+  results: ImportRowResult[];
+  summary: Record<ImportRowStatus, number>;
+}
+
 export interface SavePropertyRequest {
   name?: string;
   address?: string;

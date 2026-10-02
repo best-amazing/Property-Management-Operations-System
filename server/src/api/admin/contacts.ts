@@ -2,7 +2,7 @@ import { Router } from "express";
 import { Prisma } from "@prisma/client";
 import prisma from "../../utils/prisma";
 import {
-  contactInclude, findContacts, getContactFilterOptions, parseContact, saveContact,
+  contactInclude, findContacts, getContactFilterOptions, importContacts, MAX_IMPORT_ROWS, parseContact, saveContact,
 } from "../../services/contact.service";
 
 const router = Router();
@@ -76,6 +76,31 @@ router.delete("/types/:id", async (req, res) => {
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: "Failed to delete contact type" });
+  }
+});
+
+// POST /admin/contacts/import
+// { contacts: [{ name, type_id, phone, email, …, allow_duplicate? }], property_ids?: string[], dry_run?: boolean }
+// Bulk-creates contacts (e.g. parsed from a .vcf file). Duplicates — matched by
+// email or phone — are skipped unless the row sets allow_duplicate. With
+// dry_run the same checks run without writing, for the import preview.
+router.post("/import", async (req, res) => {
+  try {
+    const { contacts, property_ids, dry_run } = req.body ?? {};
+    if (!Array.isArray(contacts) || contacts.some(c => typeof c !== "object" || c === null)) {
+      return res.status(400).json({ error: "contacts must be an array of objects" });
+    }
+    if (!contacts.length) return res.status(400).json({ error: "No contacts to import" });
+    if (contacts.length > MAX_IMPORT_ROWS) {
+      return res.status(400).json({ error: `Too many contacts (${contacts.length}). The limit is ${MAX_IMPORT_ROWS} per import.` });
+    }
+    if (property_ids !== undefined && (!Array.isArray(property_ids) || property_ids.some(id => typeof id !== "string"))) {
+      return res.status(400).json({ error: "property_ids must be an array of strings" });
+    }
+    res.json(await importContacts(contacts, { propertyIds: property_ids, dryRun: !!dry_run }));
+  } catch (error) {
+    console.error("Failed to import contacts:", error);
+    res.status(500).json({ error: "Failed to import contacts" });
   }
 });
 

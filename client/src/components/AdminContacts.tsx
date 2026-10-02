@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { pmosApi } from "../services/pmosApi";
 import { Contact, ContactFilters, CreateContactRequest } from "../types/pmos";
 import { useAdminContactFilterOptions, useContacts, useContactTypes, useProperties } from "../hooks/useApi";
+import { ContactImport } from "./ContactImport";
 
 const emptyForm = (): CreateContactRequest => ({
   name: "", type_id: "", phone: "", email: "", mailing_address: "", city: "", state: "", zip: "", notes: "", property_ids: [],
@@ -246,6 +247,9 @@ export const AdminContacts: React.FC = () => {
             <button type="submit" className="pmos-btn primary" style={{ marginTop: 8 }}>{editingId ? "Save Changes" : "Create Contact"}</button>
           </form>
         </div>
+
+        {/* Bulk import from a .vcf file */}
+        <ContactImport contactTypes={contactTypes} properties={properties} onImported={fetchData} />
       </div>
     </div>
   );
