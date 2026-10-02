@@ -15,7 +15,7 @@ export const Login: React.FC = () => {
   const qc = useQueryClient();
 
   useEffect(() => {
-    if (localStorage.getItem("token")) navigate("/");
+    if (localStorage.getItem("token")) navigate("/dashboard");
   }, [navigate]);
 
   const sendOtp = async () => {
@@ -47,7 +47,8 @@ export const Login: React.FC = () => {
       // Clear any queries cached from a previous user/session so the dashboard
       // reloads for the newly logged-in account without a manual refresh.
       qc.clear();
-      navigate("/");
+      // Everyone lands on the Property management dashboard after login
+      navigate("/dashboard");
     } catch (e: any) {
       setError(e.message || "Invalid code.");
     } finally {

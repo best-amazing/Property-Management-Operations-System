@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { pmosApi } from "../services/pmosApi";
 import { Contact, ContactFilters } from "../types/pmos";
 import { Navbar } from "../components/Navbar";
 
 export const ContactsDirectory: React.FC = () => {
+  const navigate = useNavigate();
+  // Send logged-out visitors to the login page
+  useEffect(() => {
+    if (!localStorage.getItem("token")) navigate("/login");
+  }, [navigate]);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterCity, setFilterCity] = useState("");

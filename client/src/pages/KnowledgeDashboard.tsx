@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import { pmosApi } from "../services/pmosApi";
@@ -10,6 +11,11 @@ import { AnnouncementReceipt, Policy } from "../types/pmos";
 type View = { kind: "overview" } | { kind: "announcements" } | { kind: "policy"; policy: Policy };
 
 export const KnowledgeDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  // Send logged-out visitors to the login page
+  useEffect(() => {
+    if (!localStorage.getItem("token")) navigate("/login");
+  }, [navigate]);
   const [view, setView] = useState<View>({ kind: "overview" });
   const { data: categories = [], isLoading: loading } = useQuery({
     queryKey: ["dashboardPolicies"],
