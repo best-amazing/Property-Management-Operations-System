@@ -878,7 +878,7 @@ export const AdminSettings: React.FC = () => {
         </div>
 
         <div className="pmos-modal-actions">
-          <button className="pmos-btn" onClick={() => navigate("/")}>Close</button>
+          <button className="pmos-btn" onClick={() => navigate("/board")}>Close</button>
         </div>
       </div>
     </div>

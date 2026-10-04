@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import { Login } from "./pages/login";
@@ -24,7 +24,8 @@ export default function App() {
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Board />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/board" element={<Board />} />
           <Route path="/history" element={<History />} />
           <Route path="/admin" element={<AdminSettings />} />
           <Route path="/directory" element={<ContactsDirectory />} />

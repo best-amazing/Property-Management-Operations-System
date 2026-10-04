@@ -42,7 +42,7 @@ export const Navbar: React.FC = () => {
         <div className="pmos-title-row">
           <div className="pmos-title">AB Investment Groups</div>
           <div className="pmos-nav-links">
-            <Link to="/" className="pmos-btn sm">Board</Link>
+            <Link to="/board" className="pmos-btn sm">Board</Link>
             <Link to="/history" className="pmos-btn sm">History</Link>
             <Link to="/directory" className="pmos-btn sm">Directory</Link>
             <Link to="/dashboard" className="pmos-btn sm">Knowledge Base</Link>
