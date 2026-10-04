@@ -27,10 +27,17 @@
   --shadow: 0 2px 6px rgba(27,36,33,0.06);
   --shadow-lg: 0 10px 30px rgba(27,36,33,0.16);
   --radius: 9px;
+  /* Faded company logo centred in the viewport, used as the backdrop behind
+     every page. The tint layer washes the logo out toward --bg; both layers
+     are fixed so the logo sits in the same spot on every page and doesn't
+     scroll with the content. Append a background colour after it. */
+  --logo-backdrop:
+    linear-gradient(rgba(236,238,234,0.92), rgba(236,238,234,0.92)) fixed,
+    url('/ab-logo.webp') center / min(60vw, 520px) no-repeat fixed;
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: var(--bg); }
+html, body { margin: 0; padding: 0; background: var(--logo-backdrop), var(--bg); }
 body {
   font-family: 'IBM Plex Sans', sans-serif;
   color: var(--ink);
@@ -44,7 +51,7 @@ button, input, select, textarea { font: inherit; }
 #pmos-root {
   font-family: 'IBM Plex Sans', sans-serif;
   color: var(--ink);
-  background: var(--bg);
+  background: var(--logo-backdrop), var(--bg);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -56,7 +63,7 @@ button, input, select, textarea { font: inherit; }
   background:
     radial-gradient(circle at 30% 20%, rgba(31,75,67,0.10), transparent 55%),
     radial-gradient(circle at 80% 80%, rgba(217,142,59,0.10), transparent 50%),
-    var(--bg);
+    var(--logo-backdrop), var(--bg);
   padding: 30px;
   min-height: 100vh;
 }
@@ -158,7 +165,7 @@ button, input, select, textarea { font: inherit; }
 .pmos-filter select { font-size: 12px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
 
 /* ── Board ── */
-.pmos-board-wrap { flex: 1; overflow: auto; padding: 18px 22px 22px; background: var(--bg); }
+.pmos-board-wrap { flex: 1; overflow: auto; padding: 18px 22px 22px; background: var(--logo-backdrop), var(--bg); }
 .pmos-board { display: flex; gap: 14px; align-items: flex-start; min-height: 300px; }
 .pmos-empty { padding: 40px; color: var(--ink-soft); font-size: 13px; text-align: center; width: 100%; }
 .pmos-col { flex: 0 0 252px; background: rgba(255,255,255,0.6); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; max-height: 100%; }
@@ -191,7 +198,7 @@ table.pmos-history-table td { padding: 9px 12px; border-bottom: 1px dashed var(-
 table.pmos-history-table tr:last-child td { border-bottom: none; }
 
 /* ── Shared page shell (History / Directory / Knowledge Base) ── */
-.pmos-page { flex: 1; display: flex; flex-direction: column; min-height: 100vh; background: var(--bg); }
+.pmos-page { flex: 1; display: flex; flex-direction: column; min-height: 100vh; background: var(--logo-backdrop), var(--bg); }
 .pmos-page-body { flex: 1; padding: 18px 22px 26px; }
 .pmos-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
 .pmos-page-title { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: 0.2px; }
@@ -246,14 +253,7 @@ table.pmos-table tbody tr:hover { background: var(--primary-soft); }
 }
 .pmos-kb-item:hover { background: var(--bg); }
 .pmos-kb-item.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; border-left-color: var(--primary); }
-.pmos-kb-main {
-  flex: 1; overflow-y: auto; padding: 18px 22px;
-  /* Faded company logo centred behind the content. The tint layer washes the
-     logo out toward --bg; both layers stay put while the content scrolls. */
-  background:
-    linear-gradient(rgba(236,238,234,0.92), rgba(236,238,234,0.92)),
-    url('/ab-logo.webp') center / min(60%, 520px) no-repeat;
-}
+.pmos-kb-main { flex: 1; overflow-y: auto; padding: 18px 22px; }
 .pmos-doc { max-width: 780px; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 22px 26px; }
 .pmos-doc h1 { font-family: 'Space Grotesk', sans-serif; font-size: 21px; font-weight: 700; margin: 0 0 10px; }
 .pmos-doc .meta { display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: var(--ink-soft); border-bottom: 1px solid var(--line); padding-bottom: 11px; margin-bottom: 16px; flex-wrap: wrap; }
