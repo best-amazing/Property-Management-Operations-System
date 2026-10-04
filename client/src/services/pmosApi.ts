@@ -42,6 +42,14 @@ export const pmosApi = {
       headers: { ...this.getHeaders(), ...options?.headers },
     });
     if (!response.ok) {
+      // An expired or invalid session token (they last 24h) would otherwise
+      // leave the user stuck on failing pages until they cleared site data.
+      // Drop it and send them back to sign in. Auth endpoints are excluded:
+      // there a 401 means wrong credentials, not an expired session.
+      if (response.status === 401 && localStorage.getItem(TOKEN_KEY) && !url.startsWith("/client/auth")) {
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.assign("/login");
+      }
       const error = await response.json().catch(() => ({ error: "API Request Failed" }));
       throw new Error(error.error || "API Request Failed");
     }
