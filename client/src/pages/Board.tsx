@@ -821,6 +821,9 @@ export const Board: React.FC = () => {
               {me.role === "admin" && (
                 <button className="pmos-btn" onClick={() => navigate("/admin")}>Admin settings</button>
               )}
+              {me.role === "team_lead" && (
+                <button className="pmos-btn" onClick={() => navigate("/admin")}>Post announcement</button>
+              )}
               {canCreate && <button className="pmos-btn primary" onClick={() => { setNewTicketStage(0); setShowNewTicket(true); }}>+ New ticket</button>}
             </div>
             <div className="pmos-user-pill">

@@ -9,11 +9,11 @@ import contactsRouter from "./contacts";
 import policiesRouter from "./policies";
 import announcementsRouter from "./announcements";
 import propertiesRouter from "./properties";
-import { requireAdmin } from "../../utils/authMiddleware";
+import { requireAdminOrTeamLeadAnnouncements } from "../../utils/authMiddleware";
 
 const router = Router();
 
-router.use(requireAdmin);
+router.use(requireAdminOrTeamLeadAnnouncements);
 router.use("/users", usersRouter);
 router.use("/pipelines", pipelinesRouter);
 router.use("/seed", seedRouter);

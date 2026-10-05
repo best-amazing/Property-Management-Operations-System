@@ -54,6 +54,9 @@ export const Navbar: React.FC = () => {
               {me?.role === "admin" && (
                 <button className="pmos-btn" onClick={() => navigate("/admin")}>Admin settings</button>
               )}
+              {me?.role === "team_lead" && (
+                <button className="pmos-btn" onClick={() => navigate("/admin")}>Post announcement</button>
+              )}
             </div>
             {me && (
               <div className="pmos-user-pill">

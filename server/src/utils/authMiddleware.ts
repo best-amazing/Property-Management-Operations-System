@@ -31,6 +31,26 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction): v
   });
 };
 
+// Team leads get the admin announcements tools, plus read access to the team
+// and staff type lists the announcement audience picker needs. Everything else
+// under /admin stays admin-only. Paths are relative to the /admin router.
+const TEAM_LEAD_READABLE = new Set(["/teams", "/staff-types"]);
+
+export const requireAdminOrTeamLeadAnnouncements = (req: Request, res: Response, next: NextFunction): void => {
+  requireAuth(req, res, () => {
+    const role = (req as any).user?.role;
+    const path = req.path.replace(/\/+$/, "") || "/";
+    const teamLeadAllowed =
+      path === "/announcements" || path.startsWith("/announcements/") ||
+      (req.method === "GET" && TEAM_LEAD_READABLE.has(path));
+    if (role === "admin" || (role === "team_lead" && teamLeadAllowed)) {
+      next();
+      return;
+    }
+    res.status(403).json({ error: "Forbidden. Admin access required." });
+  });
+};
+
 export const requirePermission = (permission: string) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     requireAuth(req, res, async () => {

@@ -50,7 +50,13 @@ export const AdminSettings: React.FC = () => {
   const { data: teams = [] } = useTeams();
   const { data: departments = [] } = useDepartments();
 
-  const [activeTab, setActiveTab] = useState<AdminTab>("team");
+  const token = localStorage.getItem("token");
+  let currentRole = "staff";
+  try { currentRole = JSON.parse(atob(token!.split(".")[1])).role; } catch {}
+  // Team leads can post announcements exactly as admins do, but see no other settings
+  const isAdmin = currentRole === "admin";
+
+  const [activeTab, setActiveTab] = useState<AdminTab>(isAdmin ? "team" : "announcements");
 
   // ── User form state ────────────────────────────────────────────────────────
   const [newUsername, setNewUsername] = useState("");
@@ -116,11 +122,8 @@ export const AdminSettings: React.FC = () => {
     if (usersError) navigate("/login");
   }, [usersError, navigate]);
 
-  const token = localStorage.getItem("token");
   if (!token) { navigate("/login"); return null; }
-  let currentRole = "staff";
-  try { currentRole = JSON.parse(atob(token.split(".")[1])).role; } catch {}
-  if (currentRole !== "admin") { navigate("/"); return null; }
+  if (!isAdmin && currentRole !== "team_lead") { navigate("/"); return null; }
 
   // ── User handlers ──────────────────────────────────────────────────────────
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -383,18 +386,20 @@ export const AdminSettings: React.FC = () => {
   return (
     <div className="pmos-modal-bg show" style={{ position: "fixed", inset: 0, zIndex: 50 }}>
       <div className="pmos-modal wide" onClick={e => e.stopPropagation()} style={{ maxHeight: "90vh", overflowY: "auto" }}>
-        <h3>Admin settings</h3>
-        <div className="pmos-modal-tabs" style={{ flexWrap: "wrap" }}>
-          <button className={`pmos-seg-btn ${activeTab === "team" ? "active" : ""}`} onClick={() => setActiveTab("team")}>Users</button>
-          <button className={`pmos-seg-btn ${activeTab === "teams" ? "active" : ""}`} onClick={() => setActiveTab("teams")}>Teams</button>
-          <button className={`pmos-seg-btn ${activeTab === "staffTypes" ? "active" : ""}`} onClick={() => setActiveTab("staffTypes")}>Staff Types</button>
-          <button className={`pmos-seg-btn ${activeTab === "departments" ? "active" : ""}`} onClick={() => setActiveTab("departments")}>Departments</button>
-          <button className={`pmos-seg-btn ${activeTab === "services" ? "active" : ""}`} onClick={() => setActiveTab("services")}>Pipelines</button>
-          <button className={`pmos-seg-btn ${activeTab === "contacts" ? "active" : ""}`} onClick={() => setActiveTab("contacts")}>Contacts</button>
-          <button className={`pmos-seg-btn ${activeTab === "properties" ? "active" : ""}`} onClick={() => setActiveTab("properties")}>Properties</button>
-          <button className={`pmos-seg-btn ${activeTab === "policies" ? "active" : ""}`} onClick={() => setActiveTab("policies")}>Policies</button>
-          <button className={`pmos-seg-btn ${activeTab === "announcements" ? "active" : ""}`} onClick={() => setActiveTab("announcements")}>Announcements</button>
-        </div>
+        <h3>{isAdmin ? "Admin settings" : "Announcements"}</h3>
+        {isAdmin && (
+          <div className="pmos-modal-tabs" style={{ flexWrap: "wrap" }}>
+            <button className={`pmos-seg-btn ${activeTab === "team" ? "active" : ""}`} onClick={() => setActiveTab("team")}>Users</button>
+            <button className={`pmos-seg-btn ${activeTab === "teams" ? "active" : ""}`} onClick={() => setActiveTab("teams")}>Teams</button>
+            <button className={`pmos-seg-btn ${activeTab === "staffTypes" ? "active" : ""}`} onClick={() => setActiveTab("staffTypes")}>Staff Types</button>
+            <button className={`pmos-seg-btn ${activeTab === "departments" ? "active" : ""}`} onClick={() => setActiveTab("departments")}>Departments</button>
+            <button className={`pmos-seg-btn ${activeTab === "services" ? "active" : ""}`} onClick={() => setActiveTab("services")}>Pipelines</button>
+            <button className={`pmos-seg-btn ${activeTab === "contacts" ? "active" : ""}`} onClick={() => setActiveTab("contacts")}>Contacts</button>
+            <button className={`pmos-seg-btn ${activeTab === "properties" ? "active" : ""}`} onClick={() => setActiveTab("properties")}>Properties</button>
+            <button className={`pmos-seg-btn ${activeTab === "policies" ? "active" : ""}`} onClick={() => setActiveTab("policies")}>Policies</button>
+            <button className={`pmos-seg-btn ${activeTab === "announcements" ? "active" : ""}`} onClick={() => setActiveTab("announcements")}>Announcements</button>
+          </div>
+        )}
 
         {activeTab === "contacts" && <AdminContacts />}
         {activeTab === "properties" && <AdminProperties users={users} />}
