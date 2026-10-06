@@ -4,6 +4,7 @@ import { pmosApi } from "../services/pmosApi";
 import { Contact, ContactFilters, CreateContactRequest } from "../types/pmos";
 import { useAdminContactFilterOptions, useContacts, useContactTypes, useProperties } from "../hooks/useApi";
 import { ContactImport } from "./ContactImport";
+import { ContactBulkEditModal } from "./ContactBulkEditModal";
 
 const emptyForm = (): CreateContactRequest => ({
   name: "", type_id: "", phone: "", email: "", mailing_address: "", city: "", state: "", zip: "", notes: "", property_ids: [],
@@ -19,6 +20,14 @@ export const AdminContacts: React.FC = () => {
   const [newTypeName, setNewTypeName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CreateContactRequest>(emptyForm);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkEditing, setBulkEditing] = useState(false);
+
+  const toggleSelected = (id: string) => setSelectedIds(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   // Debounce free-text search so we don't query on every keystroke
   useEffect(() => {
@@ -112,6 +121,12 @@ export const AdminContacts: React.FC = () => {
   if (loadingContacts || loadingTypes) return <div className="pmos-empty" style={{ padding: "28px 0" }}>Loading…</div>;
 
   const showArchived = filters.status === "archived";
+  const allVisibleSelected = contacts.length > 0 && contacts.every(c => selectedIds.has(c.id));
+  const toggleAllVisible = () => setSelectedIds(prev => {
+    const next = new Set(prev);
+    contacts.forEach(c => (allVisibleSelected ? next.delete(c.id) : next.add(c.id)));
+    return next;
+  });
   const activeProperties = properties.filter(p => p.status !== "archived" || form.property_ids?.includes(p.id));
 
   return (
@@ -145,6 +160,22 @@ export const AdminContacts: React.FC = () => {
         </label>
       </div>
 
+      {/* Bulk selection */}
+      {contacts.length > 0 && (
+        <div className="pmos-bulk-bar" style={selectedIds.size ? {} : { background: "transparent" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", marginRight: "auto" }}>
+            <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} style={{ width: 14, height: 14, margin: 0 }} />
+            {selectedIds.size ? `${selectedIds.size} selected` : "Select all shown"}
+          </label>
+          {selectedIds.size > 0 && (
+            <>
+              <button className="pmos-btn primary sm" onClick={() => setBulkEditing(true)}>Edit selected</button>
+              <button className="pmos-btn sm" onClick={() => setSelectedIds(new Set())}>Clear selection</button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Contact List */}
       <div style={{ marginBottom: 24 }}>
         {contacts.map(c => {
@@ -152,6 +183,7 @@ export const AdminContacts: React.FC = () => {
           const propertyNames = (c.properties ?? []).map(p => p.property?.name).filter(Boolean);
           return (
             <div key={c.id} className="pmos-admin-row" style={isArchived ? { opacity: 0.55 } : {}}>
+              <input type="checkbox" aria-label={`Select ${c.name}`} checked={selectedIds.has(c.id)} onChange={() => toggleSelected(c.id)} style={{ width: 14, height: 14, margin: 0, flex: "none" }} />
               <div className="grow">
                 <div className="lbl" style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   {c.name}
@@ -251,6 +283,18 @@ export const AdminContacts: React.FC = () => {
         {/* Bulk import from a .vcf file */}
         <ContactImport contactTypes={contactTypes} properties={properties} onImported={fetchData} />
       </div>
+
+      {bulkEditing && (
+        <ContactBulkEditModal
+          ids={[...selectedIds]}
+          contactTypes={contactTypes}
+          properties={properties.filter(p => p.status !== "archived")}
+          cities={filterOptions?.cities}
+          states={filterOptions?.states}
+          onClose={() => setBulkEditing(false)}
+          onSaved={() => { setBulkEditing(false); setSelectedIds(new Set()); fetchData(); }}
+        />
+      )}
     </div>
   );
 };

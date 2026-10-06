@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { pmosApi } from "../services/pmosApi";
 import { Contact, ContactFilters } from "../types/pmos";
 import { Navbar } from "../components/Navbar";
+import { ContactEditModal } from "../components/ContactEditModal";
+import { ContactBulkEditModal } from "../components/ContactBulkEditModal";
+import { QUERY_KEYS, useMe } from "../hooks/useApi";
 
 export const ContactsDirectory: React.FC = () => {
   const navigate = useNavigate();
@@ -19,6 +22,13 @@ export const ContactsDirectory: React.FC = () => {
   const [filterType, setFilterType] = useState("");
   const [filterProperty, setFilterProperty] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  // Admins can edit contacts one at a time, or tick several and bulk edit
+  const qc = useQueryClient();
+  const { data: me } = useMe();
+  const isAdmin = me?.role === "admin";
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkEditing, setBulkEditing] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -40,6 +50,24 @@ export const ContactsDirectory: React.FC = () => {
     queryKey: ["directoryFilterOptions"],
     queryFn: pmosApi.getContactFilterOptions,
     staleTime: 60 * 1000,
+  });
+
+  const refreshContacts = () => {
+    qc.invalidateQueries({ queryKey: ["directoryContacts"] });
+    qc.invalidateQueries({ queryKey: ["directoryFilterOptions"] });
+    qc.invalidateQueries({ queryKey: QUERY_KEYS.contacts });
+  };
+
+  const toggleSelected = (id: string) => setSelectedIds(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const allVisibleSelected = contacts.length > 0 && contacts.every(c => selectedIds.has(c.id));
+  const toggleAllVisible = () => setSelectedIds(prev => {
+    const next = new Set(prev);
+    contacts.forEach(c => (allVisibleSelected ? next.delete(c.id) : next.add(c.id)));
+    return next;
   });
 
   const hasFilters = !!(search || filterCity || filterState || filterZip || filterType || filterProperty);
@@ -117,6 +145,14 @@ export const ContactsDirectory: React.FC = () => {
           )}
         </div>
 
+        {isAdmin && selectedIds.size > 0 && (
+          <div className="pmos-bulk-bar">
+            <span>{selectedIds.size} selected</span>
+            <button className="pmos-btn primary sm" onClick={() => setBulkEditing(true)}>Edit selected</button>
+            <button className="pmos-btn sm" onClick={() => setSelectedIds(new Set())}>Clear selection</button>
+          </div>
+        )}
+
         {/* Contact list */}
         {loading ? (
           <div className="pmos-table" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -133,6 +169,11 @@ export const ContactsDirectory: React.FC = () => {
             <table className="pmos-table">
               <thead>
                 <tr>
+                  {isAdmin && (
+                    <th style={{ width: 34 }}>
+                      <input type="checkbox" aria-label="Select all shown contacts" checked={allVisibleSelected} onChange={toggleAllVisible} />
+                    </th>
+                  )}
                   <th>Name</th>
                   <th>Type</th>
                   <th>Phone</th>
@@ -144,6 +185,11 @@ export const ContactsDirectory: React.FC = () => {
               <tbody>
                 {contacts.map(contact => (
                   <tr key={contact.id} onClick={() => setSelectedContact(contact)}>
+                    {isAdmin && (
+                      <td onClick={e => e.stopPropagation()}>
+                        <input type="checkbox" aria-label={`Select ${contact.name}`} checked={selectedIds.has(contact.id)} onChange={() => toggleSelected(contact.id)} />
+                      </td>
+                    )}
                     <td style={{ fontWeight: 600 }}>{contact.name}</td>
                     <td>
                       {contact.contact_type?.name
@@ -176,7 +222,12 @@ export const ContactsDirectory: React.FC = () => {
                 <h3>{selectedContact.name}</h3>
                 <div className="sub">{selectedContact.contact_type?.name || "Contact"}</div>
               </div>
-              <button className="pmos-x" aria-label="Close contact" onClick={() => setSelectedContact(null)}>&times;</button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {isAdmin && (
+                  <button className="pmos-btn sm" onClick={() => { setEditingContact(selectedContact); setSelectedContact(null); }}>Edit</button>
+                )}
+                <button className="pmos-x" aria-label="Close contact" onClick={() => setSelectedContact(null)}>&times;</button>
+              </div>
             </div>
             <div className="pmos-drawer-body">
               <div className="pmos-detail">
@@ -199,6 +250,29 @@ export const ContactsDirectory: React.FC = () => {
           </>
         )}
       </div>
+
+      {editingContact && options && (
+        <ContactEditModal
+          contact={editingContact}
+          contactTypes={options.types}
+          properties={options.properties}
+          cities={options.cities}
+          states={options.states}
+          onClose={() => setEditingContact(null)}
+          onSaved={() => { setEditingContact(null); refreshContacts(); }}
+        />
+      )}
+      {bulkEditing && options && (
+        <ContactBulkEditModal
+          ids={[...selectedIds]}
+          contactTypes={options.types}
+          properties={options.properties}
+          cities={options.cities}
+          states={options.states}
+          onClose={() => setBulkEditing(false)}
+          onSaved={() => { setBulkEditing(false); setSelectedIds(new Set()); refreshContacts(); }}
+        />
+      )}
     </div>
   );
 };

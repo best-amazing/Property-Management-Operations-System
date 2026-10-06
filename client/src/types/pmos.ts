@@ -323,6 +323,14 @@ export interface UpdateContactRequest extends Partial<CreateContactRequest> {
   status?: string;
 }
 
+export type BulkPropertyMode = "add" | "remove" | "replace";
+
+export interface BulkUpdateContactsRequest {
+  ids: string[];
+  changes?: Partial<Pick<CreateContactRequest, "type_id" | "city" | "state" | "zip">> & { status?: "active" | "archived" };
+  properties?: { mode: BulkPropertyMode; ids: string[] };
+}
+
 export interface ImportContactRow extends CreateContactRequest {
   allow_duplicate?: boolean;
 }

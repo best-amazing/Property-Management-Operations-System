@@ -194,3 +194,62 @@ export async function saveContact(id: string | null, data: Record<string, any>, 
     return tx.contact.findUniqueOrThrow({ where: { id: contact.id }, include: contactInclude });
   });
 }
+
+// ─── Bulk edit ────────────────────────────────────────────────────────────────
+
+export const MAX_BULK_UPDATE = 5000;
+
+// Fields that can be set on many contacts at once. Name, phone, email and
+// address are per-person, so they're only edited one contact at a time.
+const BULK_FIELDS = ["type_id", "city", "state", "zip", "status"] as const;
+
+export type BulkPropertyMode = "add" | "remove" | "replace";
+
+export function parseBulkUpdate(body: Record<string, any>):
+  { error: string } | { ids: string[]; data: Record<string, any>; properties?: { mode: BulkPropertyMode; ids: string[] } } {
+  const { ids, changes, properties } = body ?? {};
+  if (!Array.isArray(ids) || !ids.length || ids.some(id => typeof id !== "string")) return { error: "ids must be a non-empty array of contact ids" };
+  if (ids.length > MAX_BULK_UPDATE) return { error: `Too many contacts (${ids.length}). The limit is ${MAX_BULK_UPDATE} per bulk edit.` };
+
+  const raw = changes && typeof changes === "object" ? changes : {};
+  const unknown = Object.keys(raw).filter(k => !(BULK_FIELDS as readonly string[]).includes(k));
+  if (unknown.length) return { error: `These fields can't be bulk edited: ${unknown.join(", ")}` };
+  const parsed = parseContact(raw, true);
+  if ("error" in parsed) return parsed;
+
+  let props: { mode: BulkPropertyMode; ids: string[] } | undefined;
+  if (properties !== undefined && properties !== null) {
+    if (!["add", "remove", "replace"].includes(properties.mode)) return { error: "properties.mode must be add, remove or replace" };
+    if (!Array.isArray(properties.ids) || properties.ids.some((x: unknown) => typeof x !== "string")) return { error: "properties.ids must be an array of strings" };
+    props = { mode: properties.mode, ids: [...new Set<string>(properties.ids)] };
+  }
+  if (!Object.keys(parsed.data).length && !props) return { error: "Nothing to change" };
+  return { ids: [...new Set<string>(ids)], data: parsed.data, properties: props };
+}
+
+export async function bulkUpdateContacts(ids: string[], data: Record<string, any>, properties?: { mode: BulkPropertyMode; ids: string[] }) {
+  return prisma.$transaction(async tx => {
+    const { count } = Object.keys(data).length
+      ? await tx.contact.updateMany({ where: { id: { in: ids } }, data })
+      : { count: await tx.contact.count({ where: { id: { in: ids } } }) };
+
+    if (properties) {
+      if (properties.mode !== "add") {
+        await tx.propertyContact.deleteMany({
+          where: { contact_id: { in: ids }, ...(properties.mode === "remove" ? { property_id: { in: properties.ids } } : {}) },
+        });
+      }
+      if (properties.mode !== "remove" && properties.ids.length) {
+        await tx.propertyContact.createMany({
+          data: ids.flatMap(contact_id => properties.ids.map(property_id => ({ contact_id, property_id }))),
+          skipDuplicates: true,
+        });
+      }
+      // Property links don't touch the contact row, so bump updated_at here
+      if (!Object.keys(data).length) {
+        await tx.contact.updateMany({ where: { id: { in: ids } }, data: { updated_at: new Date() } });
+      }
+    }
+    return { updated: count };
+  }, { timeout: 30_000 });
+}

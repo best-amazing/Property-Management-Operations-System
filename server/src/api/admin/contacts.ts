@@ -2,7 +2,8 @@ import { Router } from "express";
 import { Prisma } from "@prisma/client";
 import prisma from "../../utils/prisma";
 import {
-  contactInclude, findContacts, getContactFilterOptions, importContacts, MAX_IMPORT_ROWS, parseContact, saveContact,
+  bulkUpdateContacts, contactInclude, findContacts, getContactFilterOptions, importContacts, MAX_IMPORT_ROWS,
+  parseBulkUpdate, parseContact, saveContact,
 } from "../../services/contact.service";
 
 const router = Router();
@@ -101,6 +102,26 @@ router.post("/import", async (req, res) => {
   } catch (error) {
     console.error("Failed to import contacts:", error);
     res.status(500).json({ error: "Failed to import contacts" });
+  }
+});
+
+// POST /admin/contacts/bulk-update
+// { ids: string[], changes?: { type_id?, city?, state?, zip?, status? },
+//   properties?: { mode: "add" | "remove" | "replace", ids: string[] } }
+// Applies the same changes to every selected contact. An empty string clears
+// city/state/zip.
+router.post("/bulk-update", async (req, res) => {
+  try {
+    const parsed = parseBulkUpdate(req.body);
+    if ("error" in parsed) return res.status(400).json({ error: parsed.error });
+    if (parsed.data.type_id && !(await prisma.contactType.findUnique({ where: { id: parsed.data.type_id } }))) {
+      return res.status(400).json({ error: "Contact type not found" });
+    }
+    res.json(await bulkUpdateContacts(parsed.ids, parsed.data, parsed.properties));
+  } catch (error) {
+    if (isKnownError(error, "P2003")) return res.status(400).json({ error: "One of the selected properties no longer exists" });
+    console.error("Failed to bulk update contacts:", error);
+    res.status(500).json({ error: "Failed to update contacts" });
   }
 });
 
