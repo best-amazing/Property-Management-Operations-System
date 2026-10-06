@@ -14,6 +14,8 @@ import {
   Property, SavePropertyRequest,
 } from "../types/pmos";
 
+import { queryClient } from "../queryClient";
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1";
 
 const TOKEN_KEY = "token";
@@ -52,6 +54,13 @@ export const pmosApi = {
       }
       const error = await response.json().catch(() => ({ error: "API Request Failed" }));
       throw new Error(error.error || "API Request Failed");
+    }
+    // A successful save/delete refreshes every loaded list, so the change shows
+    // on every screen straight away instead of after a page refresh. Login is
+    // excluded; it clears the cache itself.
+    const method = (options?.method ?? "GET").toUpperCase();
+    if (method !== "GET" && !url.startsWith("/client/auth")) {
+      queryClient.invalidateQueries();
     }
     if (response.status === 204) return undefined as T;
     return response.json();
